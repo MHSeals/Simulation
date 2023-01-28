@@ -1,4 +1,5 @@
-FROM osrf/ros:foxy-desktop-focal
+# see https://github.com/PX4/PX4-containers#container-hierarchy
+FROM px4io/px4-dev-simulation-focal
 
 ARG debian_frontend=noninteractive
 
@@ -7,20 +8,32 @@ SHELL [ "/bin/bash", "-c" ]
 RUN cp /etc/apt/sources.list /etc/apt/sources.list.backup && \
     sed -i -r 's,http://(.*).ubuntu.com,http://mirror.us-tx.kamatera.com,' /etc/apt/sources.list
 
-# Install packages
-RUN apt update && \
-    apt -y install python3-colcon-common-extensions ros-foxy-eigen3-cmake-module python3-dev python3-pip python3-pandas python-is-python3 git curl wget build-essential && \
-    pip install mavsdk
+# making sure Python is Python 3
+RUN apt-get update && \
+    apt-get -y upgrade && \
+    apt-get -y --no-install-recommends install \
+    python3-dev \
+    python3-pip \
+    python-is-python3
 
-ENV HOME /root
-ENV WORKSPACE ${HOME}/px4_ros_com_ros2
-ENV ROSSRC ${WORKSPACE}/src
+# making sure we have Intel GPU access
+RUN apt-get update && \
+    apt-get -y --no-install-recommends install \
+    libgl1-mesa-glx \
+    libgl1-mesa-dri \
+    mesa-utils \
+    mesa-utils-extra
 
-# Set up the build environment
-RUN export PATH="${PATH}:${HOME}/.local/bin" && \
-    mkdir -p ${ROSSRC} && \
-    git clone https://github.com/PX4/px4_ros_com.git ${ROSSRC}/px4_ros_com && \
-    git clone https://github.com/PX4/px4_msgs.git ${ROSSRC}/px4_msgs && \
-    git clone https://github.com/PX4/PX4-Autopilot.git --recursive ${ROSSRC}/PX4-Autopilot && \
-    bash /${ROSSRC}/px4_ros_com/scripts/build_ros2_workspace.bash && \
-    bash ${ROSSRC}/PX4-Autopilot/Tools/setup/ubuntu.sh
+# making sure we have MAVSDK
+# see https://mavsdk.mavlink.io/main/en/python/quickstart.html#install
+RUN python -m pip install --upgrade pip setuptools wheel testresources mavsdk aioconsole
+
+# clone and prebuild PX4 Autopilot software suite
+# clone to /root/px4-autopilot
+RUN git clone --recurse-submodules -j4 -b v1.13.2 https://github.com/PX4/PX4-Autopilot.git /root/px4-autopilot && \
+    cd /root/px4-autopilot && \
+    make -j4 px4_sitl_default
+
+# this is so our container will always cd straight to ~
+# which is /root because we are running as root
+RUN echo "cd /root" >> ~/.bashrc
