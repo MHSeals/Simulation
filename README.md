@@ -16,7 +16,7 @@ user@host:~$ cd /path/to/this/repository
 user@host:~$ bash build.sh
 ```
 
-Let this run undisturbed. Should now throw an error.
+Let this run undisturbed. Should not throw an error.
 
 ### 2. Execute the container
 
@@ -28,7 +28,7 @@ You will need to create a container. To do this, simply run
 
 ```console
 user@host:~$ ./run.sh
-[sha digest of container]
+# [sha digest of container]
 ```
 
 The container is now created and started in background. To attach to it, simply run the script again.
