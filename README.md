@@ -75,4 +75,10 @@ root@host:~#
 ```
 
 ## Development
+
 You can connect VSCode to the running docker container and develop live from there!
+
+### Boat Notes
+
+- The simulation starts off with the boat off at **(47.333448, 8.547111)**
+- The pipenv virtual environment should *not* be used in the container. Please don't install any packages from the `requirements.txt` or `Pipfile` to the container.
