@@ -1,0 +1,35 @@
+FROM px4io/px4-dev-simulation-focal
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+SHELL [ "/bin/bash", "-c" ]
+
+RUN cp /etc/apt/sources.list /etc/apt/sources.list.original && \
+    sed -i -r 's,http://(.*).ubuntu.com,http://mirror.us-tx.kamatera.com,' /etc/apt/sources.list
+
+RUN apt-get update && apt-get -y --no-install-recommends install \
+    mesa-utils \
+    mesa-utils-extra \
+    python3-dev \
+    python3-pip \
+    python-is-python3 \
+    git
+
+RUN mkdir -p /root/src && \
+    git clone --recurse-submodules https://github.com/PX4/PX4-Autopilot.git /root/src/px4-autopilot && \
+    cd /root/src/px4-autopilot && \
+    make -j8 px4_sitl && \
+    make -j8 px4_sitl_default sitl_gazebo-classic 
+
+# making sure we have MAVSDK
+# see https://mavsdk.mavlink.io/main/en/python/quickstart.html#install
+RUN python -m pip install --upgrade pip setuptools wheel testresources mavsdk aioconsole
+
+RUN echo "cd /root/src" >> /root/.bashrc
+
+ENV QT_X11_NO_MITSHM 1
+ENV TERM xterm-256color
+ENV NVIDIA_VISIBLE_DEVICES \
+    ${NVIDIA_VISIBLE_DEVICES:-all}
+ENV NVIDIA_DRIVER_CAPABILITIES \
+    ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}graphics
