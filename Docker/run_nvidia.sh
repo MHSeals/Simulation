@@ -5,8 +5,8 @@ MODEL_DIR=$( cd -- "$( dirname -- "${SCRIPT_DIR}" )" &> /dev/null && pwd )/Model
 PYTHON_DIR=$( cd -- "$( dirname -- "${SCRIPT_DIR}" )" &> /dev/null && pwd )/Python
 
 CONTAINER_NAME=roboboat-simulator
-IMAGE_NAME=roboboat
-IMAGE_TAG=simulator-nvidia
+IMAGE_NAME=mhseals/roboboat-simulation
+IMAGE_TAG=linux-nvidia
 
 # get docker container ID if exists
 CONTAINER_ID=`docker ps -aqf "name=^/${CONTAINER_NAME}$"`
