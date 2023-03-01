@@ -49,3 +49,5 @@ Both are located under `/root/src`
 To start the environment, run `bash /root/src/roboboat-model/spawn_env.sh`
 
 To spawn the buoy for Task 1 in the Roboboat 2022 Manual, in a separate terminal, run `python /root/src/roboboat-code/spawn_buoys.py`
+
+![demo](demo-optimized.mp4)
