@@ -45,15 +45,9 @@ done
 
 # spawn our obstacles
 # TODO: change this to spawn all 6 tasks
-python /root/src/roboboat-code/spawn_buoys.py &
+# python /root/src/roboboat-code/spawn_buoys.py &
 
-wait $!
-
-# while ! gz model --verbose --spawn-file="${GREEN_BUOY_PATH}" --model-name=gbuoy1 -x -15 -y 3 -z 1; 
-# do
-#     echo "gzserver not ready yet, trying again!"
-#     sleep 1
-# done
+# wait $!
 
 # start gzclient GUI, not following
 sleep 3
