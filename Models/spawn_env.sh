@@ -10,6 +10,7 @@ export GAZEBO_PLUGIN_PATH=${BUILD_DIR}/build_gazebo-classic
 export GAZEBO_MODEL_PATH=${SRC_DIR}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models
 export LD_LIBRARY_PATH=${BUILD_DIR}/build_gazebo-classic
 export PX4_SIM_MODEL=gazebo-classic_boat
+export GAZEBO_MASTER_URI=http://127.0.0.1:11345
 
 WORLD_PATH="/root/src/roboboat-models/benderson_park.world"
 BOAT_PATH="/root/src/roboboat-models/Boat/boat.sdf"
@@ -37,17 +38,16 @@ gzserver ${WORLD_PATH} &
 SIM_PID=$!
 
 # spawn our boat
-while ! gz model --verbose --spawn-file="${BOAT_PATH}" --model-name=bote -x 0 -y 0 -z 1 -Y 3.14; 
-do
+while gz model --verbose --spawn-file="${BOAT_PATH}" --model-name=bote -x 0 -y 0 -z 1 -Y 3.14 2>&1 | grep -q "An instance of Gazebo is not running."; do
     echo "gzserver not ready yet, trying again!"
     sleep 1
 done
 
 # spawn our obstacles
 # TODO: change this to spawn all 6 tasks
-# python /root/src/roboboat-code/spawn_buoys.py &
+python /root/src/roboboat-code/spawn_buoys.py &
 
-# wait $!
+wait $!
 
 # while ! gz model --verbose --spawn-file="${GREEN_BUOY_PATH}" --model-name=gbuoy1 -x -15 -y 3 -z 1; 
 # do
