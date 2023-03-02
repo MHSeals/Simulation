@@ -32,7 +32,7 @@ pkill -x gzserver || true
 
 # start gzserver with our world
 # gzserver empty.world &
-gzserver ${WORLD_PATH} &
+gzserver --verbose ${WORLD_PATH} &
 
 # save gzserver PID to kill later
 SIM_PID=$!
