@@ -33,6 +33,9 @@ pkill -x gzserver || true
 # gzserver empty.world &
 gzserver ${WORLD_PATH} &
 
+# save gzserver PID to kill later
+SIM_PID=$!
+
 # spawn our boat
 while ! gz model --verbose --spawn-file="${BOAT_PATH}" --model-name=bote -x 0 -y 0 -z 1 -Y 3.14; 
 do
@@ -42,18 +45,15 @@ done
 
 # spawn our obstacles
 # TODO: change this to spawn all 6 tasks
-python /root/src/roboboat-code/spawn_buoys.py &
+# python /root/src/roboboat-code/spawn_buoys.py &
 
-wait $!
+# wait $!
 
 # while ! gz model --verbose --spawn-file="${GREEN_BUOY_PATH}" --model-name=gbuoy1 -x -15 -y 3 -z 1; 
 # do
 #     echo "gzserver not ready yet, trying again!"
 #     sleep 1
 # done
-
-# save gzserver PID to kill later
-SIM_PID=$!
 
 # start gzclient GUI, not following
 sleep 3
