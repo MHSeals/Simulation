@@ -30,8 +30,12 @@ red_count = 0
 green_count = 0
 for ((red_buoy_x, red_buoy_y), (green_buoy_x, green_buoy_y)) in buoy_locations:
     cmd = f'gz model --verbose --spawn-file="{red_models}" --model-name=rbuoy{red_count} -x {red_buoy_x} -y {red_buoy_y} -z 1'
-    red_count += 1
+    cmd = 'GAZEBO_MASTER_URI=http://127.0.0.1:11345 ' + cmd
     subprocess.run(cmd, shell=True)
+    
     cmd = f'gz model --verbose --spawn-file="{green_models}" --model-name=gbuoy{green_count} -x {green_buoy_x} -y {green_buoy_y} -z 1'
+    cmd = 'GAZEBO_MASTER_URI=http://127.0.0.1:11345 ' + cmd
     subprocess.run(cmd, shell=True)
+    
     green_count += 1
+    red_count += 1
