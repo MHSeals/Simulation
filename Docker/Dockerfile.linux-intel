@@ -31,9 +31,20 @@ RUN mkdir -p /root/src && \
 
 # making sure we have MAVSDK
 # see https://mavsdk.mavlink.io/main/en/python/quickstart.html#install
-RUN python -m pip install --upgrade pip setuptools wheel testresources mavsdk aioconsole
+RUN python -m pip install --upgrade pip setuptools wheel testresources mavsdk aioconsole opencv-python
+
+# some voodoo gstream to OpenCV stuff
+RUN apt-get update && \
+    apt-get -y --no-install-recommends install \
+    gstreamer1.0-libav \
+    gstreamer1.0-plugins-bad \
+    gstreamer1.0-libav \
+    gstreamer1.0-gl
 
 RUN echo "cd /root/src" >> /root/.bashrc
+
+# fixes Minh's laptop not knowing GAZEBO_MASTER_URI
+ENV GAZEBO_MASTER_URI=http://127.0.0.1:11345
 
 ENV QT_X11_NO_MITSHM 1
 ENV TERM xterm-256color
