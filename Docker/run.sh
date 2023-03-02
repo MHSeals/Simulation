@@ -19,7 +19,6 @@ if [ -z "${CONTAINER_ID}" ]; then
         --name ${CONTAINER_NAME} \
         --device "/dev/dri:/dev/dri" \
         --privileged \
-        --gpus all \
         --shm-size 16G \
         --network host \
         --env "DISPLAY=$DISPLAY" \
