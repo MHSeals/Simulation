@@ -9,12 +9,21 @@ def draw_box(frame, mask, boxName):
                                    cv2.RETR_EXTERNAL,
                                    cv2.CHAIN_APPROX_SIMPLE)
 
+    if len(contours) == 0:
+        return
+
     contour = sorted(contours, key=lambda c: cv2.contourArea(c), reverse=True)[0]
     x, y, w, h = cv2.boundingRect(contour)
     imageFrame = cv2.rectangle(frame, (x, y), 
                                (x + w, y + h), 
                                (0, 0, 255), 2)
       
+    imageFrame = cv2.circle(frame, 
+                            (x + w // 2, y + h // 2),
+                            4,
+                            (100, 100, 255),
+                            2)
+
     cv2.putText(frame, boxName, (x, y),
                 cv2.FONT_HERSHEY_SIMPLEX, 1.0,
                 (0, 0, 255))
