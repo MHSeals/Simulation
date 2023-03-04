@@ -41,7 +41,7 @@ def main():
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         
-        # dont want computer to die
+        # don't want computer to die
         time.sleep(0.5)
 
 
@@ -75,7 +75,7 @@ def find_buoy(frame: np.ndarray, lower_bound: Tuple[int, int, int], upper_bound:
     return (x + w // 2, y + h // 2)
 
 
-def get_gate_delta() -> int:
+def get_gate_delta(debug = False) -> int:
     """Returns the pixel difference between the current heading pixel (middle pixel of the video frame)
     and the midpoint of the detected green and red gates. Negative = gate is to the left, Positive = gate to the right
 
@@ -88,18 +88,24 @@ def get_gate_delta() -> int:
     while not video.frame_available():
         time.sleep(1)
 
-    frame = video.frame()
+    frame = cv2.cvtColor(video.frame(), cv2.COLOR_BGR2HSV)
 
     # find the red and green buoy
     red_x, _ = find_buoy(frame, (0, 50, 50), (10, 255, 255))
     green_x, _ = find_buoy(frame, (36,  50,  50), (86, 255, 255))
 
     # find the midpoint between the red and green buoy
-    mid_x = (red_x + green_x) / 2
+    mid_x = (red_x + green_x) // 2
 
     # return the difference from that and the center of the camera
     _, width, _ = frame.shape
 
+    if debug:
+        print(f"""red_x: {red_x}
+green_x: {green_x}
+mid_x: {mid_x}
+frame_width: {width}
+""")
     return mid_x - width // 2
 
 
