@@ -14,4 +14,5 @@ docker run \
     --volume="/tmp/.X11-unix:/tmp/.X11-unix" \
     --volume="/mnt/wslg:/mnt/wslg" \
     --volume="/usr/lib/wsl:/usr/lib/wsl" \
+    mhseals/roboboat-simulation:wsl2-nvidia \
     glxinfo | grep "OpenGL"
