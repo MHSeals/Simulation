@@ -19,6 +19,7 @@ if [ -z "${CONTAINER_ID}" ]; then
         --shm-size=16G \
         --device=/dev/dxg \
         --gpus=all \
+        --name ${CONTAINER_NAME} \
         --publish 18570:18570/udp \
         --publish 18550:18550/udp \
         --publish 14550:14550/udp \
