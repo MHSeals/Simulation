@@ -8,6 +8,13 @@ RUN cp /etc/apt/sources.list /etc/apt/sources.list.original && \
     sed -i -r 's,http://(.*).ubuntu.com,http://mirror.us-tx.kamatera.com,' /etc/apt/sources.list
 
 RUN apt-get update && apt-get -y --no-install-recommends install \
+    libxext6 \
+    libx11-6 \
+    libglvnd0 \
+    libgl1 \
+    libglx0 \
+    libegl1 \
+    freeglut3-dev \
     mesa-utils \
     mesa-utils-extra \
     python3-dev \
@@ -19,7 +26,7 @@ RUN mkdir -p /root/src && \
     git clone --recurse-submodules https://github.com/PX4/PX4-Autopilot.git /root/src/px4-autopilot && \
     cd /root/src/px4-autopilot && \
     make -j8 px4_sitl && \
-    make -j8 px4_sitl_default sitl_gazebo-classic 
+    make -j8 px4_sitl_default sitl_gazebo-classic
 
 # making sure we have MAVSDK
 # see https://mavsdk.mavlink.io/main/en/python/quickstart.html#install
