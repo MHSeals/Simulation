@@ -2,17 +2,15 @@ from gstream import Video
 import time
 import cv2
 
-def main():
+def main(num_frames = 1):
     video = Video()
-    while not video.frame_available():
-        time.sleep(1)
+    for i in range(num_frames):
+        while not video.frame_available():
+            time.sleep(1)
 
-    frame = video.frame()
-    cv2.imwrite('./frames/frame-1.jpg', frame)
-    cv2.imshow(frame)
-    cv2.destroyAllWindows()
-    pass
+        frame = video.frame()
+        cv2.imwrite(f'./frames/frame-{i:02d}.jpg', frame)
 
 
 if __name__ == '__main__':
-    main()
+    main(100)

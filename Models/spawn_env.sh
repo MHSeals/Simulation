@@ -46,7 +46,7 @@ done
 
 # spawn our obstacles
 # TODO: change this to spawn all 6 tasks
-# python /root/src/roboboat-code/spawn_buoys.py &
+python /root/src/roboboat-code/spawn_buoys.py
 
 # wait $!
 
