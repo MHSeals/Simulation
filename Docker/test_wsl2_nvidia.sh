@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+docker pull mhseals/roboboat-simulation:wsl2-nvidia
+
 docker run \
     --interactive \
     --tty \

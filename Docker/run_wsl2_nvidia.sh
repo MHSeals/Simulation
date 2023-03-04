@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+docker pull mhseals/roboboat-simulation:wsl2-nvidia
+
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 MODEL_DIR=$( cd -- "$( dirname -- "${SCRIPT_DIR}" )" &> /dev/null && pwd )/Models
 PYTHON_DIR=$( cd -- "$( dirname -- "${SCRIPT_DIR}" )" &> /dev/null && pwd )/Python
