@@ -22,10 +22,12 @@ if [ -z "${CONTAINER_ID}" ]; then
         --device=/dev/dxg \
         --gpus=all \
         --name ${CONTAINER_NAME} \
+        --publish 18530:18530/udp \
         --publish 18570:18570/udp \
         --publish 18550:18550/udp \
         --publish 14550:14550/udp \
         --publish 14570:14570/udp \
+        --publish 14530:14530/udp \
         --publish 5600:5600/udp \
         --env DISPLAY=$DISPLAY \
         --env WAYLAND_DISPLAY=$WAYLAND_DISPLAY \
