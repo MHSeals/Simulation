@@ -125,18 +125,9 @@ async def disarm_boat(boat: System):
     async for landed_state in boat.telemetry.landed_state():
         if landed_state == LandedState.LANDING: break
         await asyncio.sleep(1) # check every second
-    
-    async for position in boat.telemetry.position():
-        await boat.action.set_return_to_launch_altitude(position.relative_altitude_m)
-        break
-    
-    async for landed_state in boat.telemetry.landed_state():
-        if landed_state == LandedState.ON_GROUND:
-            break
-        await asyncio.sleep(1)  # check every second
         
     print('---- Disarming Boat ----')
-    await boat.action.disarm()
+    await boat.action.land()
 
 
 async def connect_to_boat(connection_string='udp://:14540') -> System:
