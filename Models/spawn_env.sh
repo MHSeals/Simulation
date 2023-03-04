@@ -5,16 +5,16 @@
 
 SRC_DIR=/root/src/px4-autopilot
 BUILD_DIR=${SRC_DIR}/build/px4_sitl_default
+SITL_EXEC="${BUILD_DIR}/bin/px4"
 
-export GAZEBO_PLUGIN_PATH=${BUILD_DIR}/build_gazebo-classic
-export GAZEBO_MODEL_PATH=${SRC_DIR}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models
-export LD_LIBRARY_PATH=${BUILD_DIR}/build_gazebo-classic
+export GAZEBO_PLUGIN_PATH=$GAZEBO_PLUGIN_PATH:${BUILD_DIR}/build_gazebo-classic
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:${SRC_DIR}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${BUILD_DIR}/build_gazebo-classic
+
 export PX4_SIM_MODEL=gazebo-classic_boat
-export GAZEBO_MASTER_URI=http://127.0.0.1:11345
 
 WORLD_PATH="/root/src/roboboat-models/benderson_park.world"
 BOAT_PATH="/root/src/roboboat-models/Boat/boat.sdf"
-# BOAT_PATH=$(echo ${GAZEBO_MODEL_PATH}/boat/boat.sdf | tr -d '\r')
 RED_BUOY_PATH="/root/src/roboboat-models/Buoy/red_buoy.sdf"
 GREEN_BUOY_PATH="/root/src/roboboat-models/Buoy/green_buoy.sdf"
 
@@ -33,6 +33,7 @@ pkill -x gzserver || true
 # start gzserver with our world
 # gzserver empty.world &
 gzserver --verbose ${WORLD_PATH} &
+# gzserver --verbose ocean.world &
 
 # save gzserver PID to kill later
 SIM_PID=$!
@@ -62,7 +63,7 @@ pushd "$rootfs" >/dev/null
 set +e
 
 # starts SITL
-eval /root/src/px4-autopilot/build/px4_sitl_default/bin/px4 -d /root/src/px4-autopilot/build/px4_sitl_default/etc
+eval ${SITL_EXEC} -d "/root/src/px4-autopilot/build/px4_sitl_default"/etc
 
 # killing everything
 echo -n "Killing gzserver in background (pid ${SIM_PID})... " && kill -9 $SIM_PID && echo "Done."
