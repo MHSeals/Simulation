@@ -6,7 +6,7 @@ docker run \
     --rm \
     --shm-size=16G \
     --device=/dev/dxg \
-    --gpus=all
+    --gpus=all \
     --env DISPLAY=$DISPLAY \
     --env WAYLAND_DISPLAY=$WAYLAND_DISPLAY \
     --env XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR \
