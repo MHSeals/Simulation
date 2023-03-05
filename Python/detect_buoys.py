@@ -1,5 +1,6 @@
 from typing import Tuple
 import cv2
+from cv2 import Mat
 import numpy as np
 import time
 from gstream import Video
@@ -12,9 +13,28 @@ def process_frame(frame: np.ndarray):
         frame (np.ndarray): The frame to process
     """
     hsv: np.ndarray = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    
+    # Hue Saturation Vibrance
+    # Demon Magic
+    # https://stackoverflow.com/questions/32522989/opencv-better-detection-of-red-color
+    red1_lower = (0, 50, 50)
+    red1_upper = (10, 255, 255)
+    red2_lower = (170, 70, 50)
+    red2_upper = (180, 255, 255)
+    green_lower = (36,  50,  50)
+    green_upper = (86, 255, 255)
+    
+    
+    red1_mask = cv2.inRange(hsv, red1_lower, red1_upper)
+    red2_mask = cv2.inRange(hsv, red2_lower, red2_upper)
+    red_mask = red1_mask | red2_mask
+    green_mask = cv2.inRange(hsv, green_lower, green_upper)
+    
+    cv2.imshow('Red Mask', red_mask)
+    cv2.imshow('Green Mask', green_mask)
 
-    red_x, red_y = find_buoy(hsv, (0, 50, 50), (10, 255, 255))
-    green_x, green_y = find_buoy(hsv, (36,  50,  50), (86, 255, 255))
+    red_x, red_y = find_buoy(hsv, red1_lower, red1_upper)
+    green_x, green_y = find_buoy(hsv, green_lower, green_upper)
     mid_x, mid_y = (red_x + green_x) // 2, (red_y + green_y) // 2
 
     # draw circles around the centers of the buoys
@@ -45,7 +65,7 @@ def main():
         time.sleep(0.5)
 
 
-def find_buoy(frame: np.ndarray, lower_bound: Tuple[int, int, int], upper_bound: Tuple[int, int, int]) -> Tuple[int, int]:
+def find_buoy(frame: np.ndarray, mask: Mat) -> Tuple[int, int]:
     """Finds a buoy with the given lower and upper bounds for a color mask
 
     Args:
@@ -57,9 +77,6 @@ def find_buoy(frame: np.ndarray, lower_bound: Tuple[int, int, int], upper_bound:
         Tuple[int, int]: The (x,y) pixel coordinate of the center of the detected buoy
     """
     
-    # Color mask the image
-    mask = cv2.inRange(frame, lower_bound, upper_bound)
-
     # Get the biggest contour (the closest buoy in the frame)
     contours, _ = cv2.findContours(mask,
                                    cv2.RETR_EXTERNAL,
@@ -90,9 +107,21 @@ def get_gate_delta(debug = False) -> int:
 
     frame = cv2.cvtColor(video.frame(), cv2.COLOR_BGR2HSV)
 
+    red1_lower = (0, 50, 50)
+    red1_upper = (10, 255, 255)
+    red2_lower = (170, 70, 50)
+    red2_upper = (180, 255, 255)
+    green_lower = (36,  50,  50)
+    green_upper = (86, 255, 255)
+
+    red1_mask = cv2.inRange(frame, red1_lower, red1_upper)
+    red2_mask = cv2.inRange(frame, red2_lower, red2_upper)
+    red_mask = red1_mask | red2_mask
+    green_mask = cv2.inRange(frame, green_lower, green_upper)
+
     # find the red and green buoy
-    red_x, _ = find_buoy(frame, (0, 50, 50), (10, 255, 255))
-    green_x, _ = find_buoy(frame, (36,  50,  50), (86, 255, 255))
+    red_x, _ = find_buoy(frame, red_mask)
+    green_x, _ = find_buoy(frame, green_mask)
 
     # find the midpoint between the red and green buoy
     mid_x = (red_x + green_x) // 2
