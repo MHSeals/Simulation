@@ -10,24 +10,28 @@ async def main():
     # Create the boat and arm it!
     detector = BuoyDetector()
     boat = AutoBoat()
+    await boat.connect()
 
     # ready the boat
     await boat.ready()
 
-    # get goal coordinates
-    detection_info = None
+    await boat.unready()
 
-    # go to tose goal coordinates
+    # get goal coordinates
+    # detection_info = None
+
+    # go to those goal coordinates
     # boat.turn(detection_info.heading)
-    
+
     # while boat isn't at goal:
     #   find_obstacle_buoys
     #   find a way around them
     #   head to the goal
     # 
     #   ⬆ check for failsafes while doing all that 
+
+    # await boat.unready()
     
-    await boat.unready()
 
 if __name__ == '__main__':
     asyncio.run(main())

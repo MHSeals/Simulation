@@ -10,7 +10,7 @@ SITL_EXEC = BUILD_DIR + '/bin/px4'
 
 os.environ['GAZEBO_PLUGIN_PATH']  = f':{BUILD_DIR}/build_gazebo-classic'
 os.environ['GAZEBO_MODEL_PATH']   = f':{SRC_DIR}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models'
-os.environ['LD_LIBRARY_PATH']    += f':{BUILD_DIR}/build_gazebo-classic'
+# os.environ['LD_LIBRARY_PATH']    += f':{BUILD_DIR}/build_gazebo-classic'
 os.environ['PX4_SIM_MODEL']       = 'gazebo-classic_boat'
 
 class EnvironmentManager:

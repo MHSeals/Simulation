@@ -175,7 +175,6 @@ async def main():
         await boat.offboard.set_position_ned(PositionNedYaw(0, 0, 0, 0))
         await boat.offboard.start()
         print('---- Offboard Mode Enable ----')
-        await boat.offboard.set_position_ned(PositionNedYaw(5, 0, 0, 0))
         print('---- Heading to Position for 15 seconds ----')
         await asyncio.sleep(15)
         await return_home(boat, starting_position, heading)

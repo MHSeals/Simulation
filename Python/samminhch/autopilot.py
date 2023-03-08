@@ -14,8 +14,8 @@ class AutoBoat:
         self.__home_coordinates = ()
 
     async def connect(self, address=None):
-        await self.vehicle.connect(system_address="udp://:14540")
         self.logger.log_warn('Waiting for boat to connect...')
+        await self.vehicle.connect(system_address="udp://:14540")
         async for state in self.vehicle.core.connection_state():
             if state.is_connected:
                 self.logger.log_ok('Boat connected')
@@ -28,14 +28,43 @@ class AutoBoat:
         Returns:
             bool: True if boat was armed and in offboard mode, False if anything bad happens
         """
+        self.logger.log_debug("Arming the boat")
         arm = await self.__arm()
+        self.logger.log_debug("Enabling offboard mode")
         offboard = await self.__enable_offboard()
-        return arm and offboard
+
+        if not arm or not offboard:
+            self.unready()
+            return False
+        return True
 
     async def unready(self):
-        pass
+        if self.__armed:
+            return False
+
+        try:
+            if await self.vehicle.offboard.is_active():
+                self.logger.log_debug("Stopping offboard mode")
+                await self.vehicle.offboard.stop()
+                self.logger.log_ok("Offboard mode disabled!")
+
+            self.logger.log_debug("Disarming boat")
+            await self.vehicle.action.land()
+            self.logger.log_ok("Boat disarmed!")
+        except Exception as e:
+            self.logger.log_error(e)
+            self.logger.log_error("Error Occurred. Killing boat.!")
+            await self.vehicle.action.kill()
+            # send a signal to cut power to motors
+        finally:
+            self.__armed = False
 
     async def __enable_offboard(self) -> bool:
+        """ Enables offboard mode for the boat. Returns a boolean indicating
+        whether the operation was successful
+
+        bool: Return True if offboard mode was enabled, False otherwise
+        """
         if not self.__armed:
             self.logger.log_error(
                 "Tried to enable offboard when boat isn't armed. Canceling...")
@@ -46,10 +75,10 @@ class AutoBoat:
         self.__home_coordinates = position
         altitude_type = PositionGlobalYaw.AltitudeType.REL_HOME
         self.logger.log_debug(
-            f'Position: ({position[0]:.3f}, {position[1]:.3f}) | Heading: {heading}')
+                f'Position: ({position[0]:.3f}, {position[1]:.3f}) | Heading: {heading:2f}')
 
         try:
-            await self.vehicle.offboard.set_position_global(PositionGlobalYaw(position[0], position[1], 0, heading,), altitude_type)
+            await self.vehicle.offboard.set_position_global(PositionGlobalYaw(position[0], position[1], 0, heading, altitude_type))
             await self.vehicle.offboard.start()
             return True 
         except Exception as e:
@@ -101,3 +130,12 @@ class AutoBoat:
         """
         async for heading in self.vehicle.telemetry.heading():
             return heading.heading_deg
+    
+    async def turn(self, heading: float):
+        """Make the boat turn (hopefully in place) a certain heading.
+        A negative heading means to turn counter-clockwise, positive heading
+        means to turn clockwise
+        """
+        current_heading = await self.get_heading()
+        await self.vehicle.offboard.set_position_ned(PositionNedYaw(0, 0, 0, current_heading - heading))
+        pass
