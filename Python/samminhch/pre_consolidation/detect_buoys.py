@@ -33,8 +33,8 @@ def process_frame(frame: np.ndarray):
     cv2.imshow('Red Mask', red_mask)
     cv2.imshow('Green Mask', green_mask)
 
-    red_x, red_y = find_buoy(hsv, red1_lower, red1_upper)
-    green_x, green_y = find_buoy(hsv, green_lower, green_upper)
+    red_x, red_y = find_buoy(hsv, red_mask)
+    green_x, green_y = find_buoy(hsv, green_mask)
     mid_x, mid_y = (red_x + green_x) // 2, (red_y + green_y) // 2
 
     # draw circles around the centers of the buoys

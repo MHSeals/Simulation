@@ -27,7 +27,6 @@ manual_inputs = [
     [0, 0, 0, 0],  # minimum throttle
 ]
 
-
 async def manual_controls():
     """Main function to connect to the drone and input manual controls"""
     # Connect to the Simulation
@@ -92,4 +91,4 @@ async def manual_controls():
 
 if __name__ == "__main__":
     # Run the asyncio loop
-    asyncio.run(run())
+    asyncio.run(manual_controls())

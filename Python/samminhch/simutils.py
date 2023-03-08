@@ -180,6 +180,12 @@ class ColorLogger:
     YELLOW = "\033[1;33m"
     UNDERLINE = "\033[4m"
     END = "\033[0m"
+    
+    def log(self, msg: str):
+        output = ''
+        output += f'[LOG]   {msg}'
+        output += ColorLogger.END
+        print(output)
 
     def log_error(self, msg: str):
         output = ''
@@ -199,6 +205,13 @@ class ColorLogger:
         output = ''
         output += ColorLogger.BLUE
         output += f'[DEBUG] {msg}'
+        output += ColorLogger.END
+        print(output)
+        
+    def log_ok(self, msg: str):
+        output = ''
+        output += ColorLogger.GREEN
+        output += f'[OK]    {msg}'
         output += ColorLogger.END
         print(output)
 
