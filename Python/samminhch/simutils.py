@@ -19,10 +19,11 @@ class EnvironmentManager:
         self.define_physical_scales()
         self.kill_all_gz_processes()
 
-    def start_simulation(self, scenario=1):
+    def start_simulation(self, scenario=1, headless=False):
         self.spawn_gzserver()
         self.populate_scenario(scenario_number=scenario)
-        self.spawn_gzclient()
+        if not headless:
+            self.spawn_gzclient()
         self.spawn_sitl()
 
     def define_models(self):
