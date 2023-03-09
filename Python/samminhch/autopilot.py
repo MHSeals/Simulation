@@ -6,6 +6,7 @@ from mavsdk.offboard import (PositionGlobalYaw, PositionNedYaw)
 from mavsdk.offboard import (OffboardError, VelocityNedYaw)
 
 from samminhch.simutils import ColorLogger
+import samminhch.coordinate_helper as coords
 
 
 class AutoBoat:
@@ -63,7 +64,7 @@ class AutoBoat:
             self.__armed = False
 
     async def get_position(self) -> Tuple[float, float]:
-        """Returns the boat's current geometric position
+        """Returns the boat's current geographic position
 
         Returns:
             Tuple[float, float]: The latitude and longitude of the boat, respectively
@@ -148,9 +149,47 @@ class AutoBoat:
             current_heading = await self.get_heading()
             await asyncio.sleep(0.1)
 
-    async def forward(self, distance: float):
-        # TODO: Implement this function
-        north, east = await self.get_position_ned()
+    async def forward(self, distance: float, heading: float = 0, error_bound=1):
+        """Make the boat move a certain distance in feet in a certain heading.
+        If heading is not specified, then boat moves straight.
+
+        ARGS:
+            distance (float): The distance to move forward in feet 
+            heading (float): The heading in degrees to turn
+            error_bound (float): The distance to stop boat from moving
+        """
+        # calculate the new heading
+        heading += await self.get_heading()
+        heading = heading % 360
+
+        # calculate the new coordinates
+        alt_type = PositionGlobalYaw.AltitudeType.REL_HOME
+        starting_position = await self.get_position()
+        new_coords = coords.get_new_coordinate(starting_position, distance, heading)
+
+        # create the new PositionGlobalYaw
+        new_pos_global = PositionGlobalYaw(new_coords[0], new_coords[1], 0, heading, alt_type)
+
+        # Tell the boat to go to the new PositionGlobalYaw
+        self.logger.log_warn(f"Boat going to head to ({new_coords[0]:.2f}, {new_coords[1]:.2f})")
+        await self.vehicle.offboard.set_position_global(new_pos_global)
+        
+        start_time = time.time()
+        current_position = await self.get_position()
+        distance = coords.coord_dist(new_coords, current_position)
+        while distance > error_bound:
+            # if time.time() - start_time > self.__timeout_seconds:
+            #     self.logger.log_error(f"Took longer than {self.__timeout_seconds} seconds. Cancelling action...")
+            #     break
+
+            self.logger.log_debug(f'Distance to Goal: {distance:05.2f} feet', beg='\r', end='')
+            # self.logger.log_debug(f'Current position: ({current_position[0]:.2f}, {current_position[1]:.2f})')
+            current_position = await self.get_position()
+            distance = coords.coord_dist(new_coords, current_position)
+            await asyncio.sleep(0.5)
+
+        print()
+        self.logger.log_ok("Operation complete!")
 
     async def __enable_offboard(self) -> bool:
         """ Enables offboard mode for the boat. Returns a boolean indicating
@@ -170,6 +209,7 @@ class AutoBoat:
         except Exception as e:
             self.logger.log_error(e)
             return False
+
 
 class AutoBoat_Jerry:
     def __init__(self):

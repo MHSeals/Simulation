@@ -182,39 +182,39 @@ class ColorLogger:
     UNDERLINE = "\033[4m"
     END = "\033[0m"
     
-    def log(self, msg: str):
-        output = ''
+    def log(self, msg: str, beg: str = '', end:str = "\n"):
+        output = beg
         output += f'[LOG]   {msg}'
         output += ColorLogger.END
-        print(output)
+        print(output, end=end)
 
-    def log_error(self, msg: str):
-        output = ''
+    def log_error(self, msg: str, beg:str = '', end:str = "\n"):
+        output = beg
         output += ColorLogger.RED
         output += f'[ERROR] {msg}'
         output += ColorLogger.END
-        print(output)
+        print(output, end=end)
 
-    def log_warn(self, msg: str):
-        output = ''
+    def log_warn(self, msg: str, beg:str = '', end:str = "\n"):
+        output = beg 
         output += ColorLogger.YELLOW
         output += f'[WARN]  {msg}'
         output += ColorLogger.END
-        print(output)
+        print(output, end=end)
 
-    def log_debug(self, msg: str):
-        output = ''
+    def log_debug(self, msg: str, beg:str = '', end:str = "\n"):
+        output = beg
         output += ColorLogger.BLUE
         output += f'[DEBUG] {msg}'
         output += ColorLogger.END
-        print(output)
+        print(output, end=end)
         
-    def log_ok(self, msg: str):
-        output = ''
+    def log_ok(self, msg: str, beg:str = '', end:str = "\n"):
+        output = beg
         output += ColorLogger.GREEN
         output += f'[OK]    {msg}'
         output += ColorLogger.END
-        print(output)
+        print(output, end=end)
 
 # ---------------------------------------------------------------------------- #
 #                                   CODE DUMP                                  #

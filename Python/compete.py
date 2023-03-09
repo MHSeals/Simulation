@@ -3,7 +3,7 @@ import cv2
 import asyncio
 
 from samminhch.vision import BuoyDetector
-from samminhch.autopilot import AutoBoat, AutoBoat_Jerry
+from samminhch.autopilot import AutoBoat
 
 
 async def main():
@@ -13,7 +13,12 @@ async def main():
     await boat.connect()
 
     # ready the boat
-    await boat.ready()
+
+    try:
+        await boat.ready()
+        await boat.forward(100, error_bound=5)
+    except Exception as e:
+        boat.logger.log_error(e)
 
     await boat.unready()
 
@@ -39,11 +44,11 @@ async def main_jerry():
     await boat.enable_offboard()
     await boat.set_position_ned_yaw(float(-2), float(0), float(0), float(-180))
     await boat.disable_offboard()
-    # await boat.disarm()
+    await boat.disarm()
 
 if __name__ == '__main__':
-    # asyncio.run(main())
-    asyncio.run(main_jerry())
+    asyncio.run(main())
+    # asyncio.run(main_jerry())
 
 # ---------------------------------------------------------------------------- #
 #                                   CODE DUMP                                  #
