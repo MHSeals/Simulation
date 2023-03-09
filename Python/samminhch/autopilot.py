@@ -122,6 +122,55 @@ class AutoBoat:
             self.logger.log_error(e)
             return False
 
+    async def turn(self, heading: float):
+        """Make the boat turn (hopefully in place) a certain heading.
+        A negative heading means to turn counter-clockwise, positive heading
+        means to turn clockwise
+        """
+        if not self.__armed:
+            self.logger.log_error("Boat cannot turn when it isn't armed. Cancelling action...")
+            return
+
+        # Send the instruction to the boat
+        self.logger.log_warn(f"Making the boat turn {heading} degrees")
+        await self.vehicle.offboard.set_position_ned(PositionNedYaw(5, 0, 0, heading))
+
+        # Time out in self.__timeout_seconds
+        start_time = time.time()
+        current_heading = await self.get_heading()
+        target_heading = (current_heading + heading) % 360
+
+        while abs(target_heading - current_heading) > 2:
+            self.logger.log_debug(f"Current heading: {current_heading:.3f} | Target Heading: {target_heading:.3f}")
+            # if time.time() - start_time > self.__timeout_seconds:
+            #     self.logger.log_error(f"Taking longer than {self.__timeout_seconds} seconds to turn. Cancelling action...")
+            #     break
+            current_heading = await self.get_heading()
+            await asyncio.sleep(0.1)
+
+    async def forward(self, distance: float):
+        # TODO: Implement this function
+        north, east = await self.get_position_ned()
+
+    async def __enable_offboard(self) -> bool:
+        """ Enables offboard mode for the boat. Returns a boolean indicating
+        whether the operation was successful
+
+        bool: Return True if offboard mode was enabled, False otherwise
+        """
+        if not self.__armed:
+            self.logger.log_error(
+                "Tried to enable offboard when boat isn't armed. Canceling...")
+            return False
+
+        try:
+            await self.vehicle.offboard.set_position_ned(PositionNedYaw(0, 0, 0, 0))
+            await self.vehicle.offboard.start()
+            return True 
+        except Exception as e:
+            self.logger.log_error(e)
+            return False
+
 class AutoBoat_Jerry:
     def __init__(self):
         self.vehicle = System()
