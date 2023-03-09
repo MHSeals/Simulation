@@ -14,6 +14,7 @@ class AutoBoat:
         self.logger = ColorLogger()
         self.__armed = False
         self.__home_coordinates = ()
+        self.__timeout_seconds = 30
 
     async def connect(self, address=None):
         self.logger.log_warn('Waiting for boat to connect...')
@@ -30,27 +31,27 @@ class AutoBoat:
         Returns:
             bool: True if boat was armed and in offboard mode, False if anything bad happens
         """
-        self.logger.log_debug("Arming the boat")
+        self.logger.log_warn("Arming the boat")
         arm = await self.__arm()
-        self.logger.log_debug("Enabling offboard mode")
+        self.logger.log_warn("Enabling offboard mode")
         offboard = await self.__enable_offboard()
 
         if not arm or not offboard:
-            self.unready()
+            await self.unready()
             return False
         return True
 
     async def unready(self):
-        if self.__armed:
+        if not self.__armed:
             return False
 
         try:
             if await self.vehicle.offboard.is_active():
-                self.logger.log_debug("Stopping offboard mode")
+                self.logger.log_warn("Stopping offboard mode")
                 await self.vehicle.offboard.stop()
                 self.logger.log_ok("Offboard mode disabled!")
 
-            self.logger.log_debug("Disarming boat")
+            self.logger.log_warn("Disarming boat")
             await self.vehicle.action.land()
             self.logger.log_ok("Boat disarmed!")
         except Exception as e:
@@ -61,60 +62,6 @@ class AutoBoat:
         finally:
             self.__armed = False
 
-    async def __enable_offboard(self) -> bool:
-        """ Enables offboard mode for the boat. Returns a boolean indicating
-        whether the operation was successful
-
-        bool: Return True if offboard mode was enabled, False otherwise
-        """
-        if not self.__armed:
-            self.logger.log_error(
-                "Tried to enable offboard when boat isn't armed. Canceling...")
-            return False
-
-        position = await self.get_position()
-        heading = await self.get_heading()
-        self.__home_coordinates = position
-        altitude_type = PositionGlobalYaw.AltitudeType.REL_HOME
-        self.logger.log_debug(
-                f'Position: ({position[0]:.3f}, {position[1]:.3f}) | Heading: {heading:2f}')
-
-        try:
-            await self.vehicle.offboard.set_position_global(PositionGlobalYaw(position[0], position[1], 0, heading, altitude_type))
-            await self.vehicle.offboard.start()
-            return True 
-        except Exception as e:
-            self.logger.log_error(e)
-            return False
-
-    async def __arm(self) -> bool:
-        """Attempts to arm the boat. Cancels arming if it takes longer than
-        30 seconds.
-
-        Returns:
-            bool: The return state. True if the boat was armed, False if the boat could not be armed.
-        """
-
-        start_time = time.time()  # keep track of the time taken to arm
-        async for health in self.vehicle.telemetry.health():
-            if health.is_global_position_ok and health.is_home_position_ok:
-                self.logger.log_ok('Global position state good')
-                break
-            if time.time() - start_time >= 30:
-                self.logger.log_error(
-                    'Took longer than 30 seconds to get a GPS lock. Cancelling arming...')
-                return False
-
-        self.logger.log_warn('Arming boat...')
-        try:
-            await self.vehicle.action.arm()
-            self.logger.log_ok('Boat armed!')
-            self.__armed = True
-            return True
-        except Exception as e:
-            self.logger.log_error(e)
-            return False
-
     async def get_position(self) -> Tuple[float, float]:
         """Returns the boat's current geometric position
 
@@ -123,6 +70,21 @@ class AutoBoat:
         """
         async for position in self.vehicle.telemetry.position():
             return (position.latitude_deg, position.longitude_deg)
+
+    async def get_position_ned(self) -> Tuple[float, float]:
+        """Returns the boat's current NED position
+
+        Returns:
+            Tuple[float, float]: The boat's north and east position in feet
+        """
+        async for pos_vel_ned in self.vehicle.telemetry.position_velocity_ned():
+            north = pos_vel_ned.position.north_m
+            east = pos_vel_ned.position.east_m
+            break
+
+        # convert these values to feet and return them
+        meters_to_feet = 3.281
+        return (north * meters_to_feet, east * meters_to_feet)
 
     async def get_heading(self) -> float:
         """Returns the boat's current heading
@@ -133,14 +95,32 @@ class AutoBoat:
         async for heading in self.vehicle.telemetry.heading():
             return heading.heading_deg
     
-    async def turn(self, heading: float):
-        """Make the boat turn (hopefully in place) a certain heading.
-        A negative heading means to turn counter-clockwise, positive heading
-        means to turn clockwise
+
+    async def __arm(self) -> bool:
+        """Attempts to arm the boat. Cancels arming if it takes longer than
+        self.__timeout_seconds.
+
+        Returns:
+            bool: The return state. True if the boat was armed, False if the boat could not be armed.
         """
-        current_heading = await self.get_heading()
-        await self.vehicle.offboard.set_position_ned(PositionNedYaw(0, 0, 0, current_heading - heading))
-        pass
+        start_time = time.time()  # keep track of the time taken to arm
+        async for health in self.vehicle.telemetry.health():
+            if health.is_global_position_ok and health.is_home_position_ok:
+                self.logger.log_ok('Global position state good')
+                break
+            if time.time() - start_time >= self.__timeout_seconds:
+                self.logger.log_error(
+                    f'Took longer than {self.__timeout_seconds} seconds to get a GPS lock. Cancelling arming...')
+                return False
+
+        try:
+            await self.vehicle.action.arm()
+            self.logger.log_ok('Boat armed!')
+            self.__armed = True
+            return True
+        except Exception as e:
+            self.logger.log_error(e)
+            return False
 
 class AutoBoat_Jerry:
     def __init__(self):
@@ -204,3 +184,5 @@ class AutoBoat_Jerry:
         ned = PositionNedYaw(north, east, down, heading)
         await self.vehicle.offboard.set_position_ned(ned)
         await asyncio.sleep(5) 
+
+
