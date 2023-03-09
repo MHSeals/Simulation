@@ -468,8 +468,8 @@
             <turningDirection>cw</turningDirection>
             <timeConstantUp>0.0125</timeConstantUp>
             <timeConstantDown>0.025</timeConstantDown>
-            <maxRotVelocity>1100</maxRotVelocity>
-            <motorConstant>8.54858e-02</motorConstant>
+            <maxRotVelocity>3000</maxRotVelocity>
+            <motorConstant>1e-10</motorConstant>
             <momentConstant>0.01</momentConstant>
             <commandSubTopic>/gazebo/command/motor_speed</commandSubTopic>
             <motorNumber>0</motorNumber>
@@ -485,8 +485,8 @@
             <turningDirection>cw</turningDirection>
             <timeConstantUp>0.0125</timeConstantUp>
             <timeConstantDown>0.025</timeConstantDown>
-            <maxRotVelocity>1100</maxRotVelocity>
-            <motorConstant>8.54858e-02</motorConstant>
+            <maxRotVelocity>3000</maxRotVelocity>
+            <motorConstant>1e-10</motorConstant>
             <momentConstant>0.01</momentConstant>
             <commandSubTopic>/gazebo/command/motor_speed</commandSubTopic>
             <motorNumber>1</motorNumber>
