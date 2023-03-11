@@ -19,21 +19,28 @@ def get_new_coordinate(start_coord: Tuple[float, float], distance_feet: float, h
     distance_meters = distance_feet * 0.3048
 
     # Convert heading from degrees to radians
-    heading = math.radians(heading_degrees)
+    heading_rad = math.radians(heading_degrees)
 
-    # Earth's radius in meters
-    earth_radius = 6378137
+    # Earth's radius in feet
+    earth_radius = 20902230.97
 
-    # Calculate new coordinates
-    result_lat = math.asin(math.sin(starting_lat) * math.cos(distance_meters / earth_radius) +
-                     math.cos(starting_lat) * math.sin(distance_meters / earth_radius) * math.cos(heading))
-    result_long = starting_long + math.atan2(math.sin(heading) * math.sin(distance_meters / earth_radius) * math.cos(starting_lat),
-                             math.cos(distance_meters / earth_radius) - math.sin(starting_lat) * math.sin(result_lat))
+    # Calculate new latitude
+    dist_earth_ratio = distance_feet / earth_radius
+    latitude = math.asin(math.sin(starting_lat) * math.cos(dist_earth_ratio) +
+                        math.cos(starting_lat) * math.sin(dist_earth_ratio) * math.cos(heading_rad))
 
-    # Convert new coordinates back to degrees
-    new_coord = math.degrees(result_lat), math.degrees(result_long)
+    # Calculate new longitude
+    longitude = starting_long + \
+              math.atan2(
+                      math.sin(heading_rad) * math.sin(dist_earth_ratio) * math.cos(starting_lat),
+                      math.cos(dist_earth_ratio) - math.sin(starting_lat) * math.sin(latitude)
+              )
 
-    return new_coord
+    # Convert latitude and longitude back to degrees
+    latitude = math.degrees(latitude)
+    longitude = math.degrees(longitude)
+
+    return (latitude, longitude)
 
 
 def coord_dist(coords_a: Tuple[float, float], coords_b: Tuple[float, float]):
@@ -56,5 +63,4 @@ def coord_dist(coords_a: Tuple[float, float], coords_b: Tuple[float, float]):
         math.cos(math.radians(coords_a[0])) * math.sin(d_lon / 2) ** 2
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     distance_m = earth_radius_m * c
-
     return distance_m * meters_to_feet

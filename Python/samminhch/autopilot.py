@@ -10,12 +10,22 @@ import samminhch.coordinate_helper as coords
 
 
 class AutoBoat:
-    def __init__(self):
+    """This is the main class to connect and send commands to the RoboBoat.
+    There's a specific way to use this class.
+
+    1. Create a variable for the class: `boat = AutoBoat()`
+    2. Connect using the `connect()` function: `boat.connect()`
+    3. Ready up the boat using the `ready()` function: `boat.ready()`
+    4. Send commands to the boat. The reccomended use is within a try-catch block
+    5. Unready the boat using the `unready()` function after the try-catch block: `boat.unready()`
+    """
+
+    def __init__(self, timeout_seconds=30):
         self.vehicle = System()
         self.logger = ColorLogger()
         self.__armed = False
         self.__home_coordinates = ()
-        self.__timeout_seconds = 30
+        self.__timeout_seconds = timeout_seconds
 
     async def connect(self, address=None):
         self.logger.log_warn('Waiting for boat to connect...')
@@ -24,6 +34,9 @@ class AutoBoat:
             if state.is_connected:
                 self.logger.log_ok('Boat connected')
                 break
+
+        # set the boat's home coordinates after connecting
+        self.__home_coordinates = await self.get_position()
 
     async def ready(self) -> bool:
         """Arms the boat and sets it to offboard mode. Returns whether
@@ -43,6 +56,9 @@ class AutoBoat:
         return True
 
     async def unready(self):
+        """This stops offboard mode on the boat, and disarms the boat. If
+        there are any errors trying to disarm the boat, it will kill the boat.
+        """
         if not self.__armed:
             return False
 
@@ -57,7 +73,7 @@ class AutoBoat:
             self.logger.log_ok("Boat disarmed!")
         except Exception as e:
             self.logger.log_error(e)
-            self.logger.log_error("Error Occurred. Killing boat.!")
+            self.logger.log_error("Error occurred, killing boat!")
             await self.vehicle.action.kill()
             # send a signal to cut power to motors
         finally:
@@ -95,7 +111,6 @@ class AutoBoat:
         """
         async for heading in self.vehicle.telemetry.heading():
             return heading.heading_deg
-    
 
     async def __arm(self) -> bool:
         """Attempts to arm the boat. Cancels arming if it takes longer than
@@ -127,9 +142,14 @@ class AutoBoat:
         """Make the boat turn (hopefully in place) a certain heading.
         A negative heading means to turn counter-clockwise, positive heading
         means to turn clockwise
+
+        Args:
+            heading (float): The heading to turn, in degrees. Positive means to
+            turn right, and negative means to turn left
         """
         if not self.__armed:
-            self.logger.log_error("Boat cannot turn when it isn't armed. Cancelling action...")
+            self.logger.log_error(
+                "Boat cannot turn when it isn't armed. Cancelling action...")
             return
 
         # Send the instruction to the boat
@@ -142,7 +162,8 @@ class AutoBoat:
         target_heading = (current_heading + heading) % 360
 
         while abs(target_heading - current_heading) > 2:
-            self.logger.log_debug(f"Current heading: {current_heading:.3f} | Target Heading: {target_heading:.3f}")
+            self.logger.log_debug(
+                f"Current heading: {current_heading:.3f} | Target Heading: {target_heading:.3f}")
             # if time.time() - start_time > self.__timeout_seconds:
             #     self.logger.log_error(f"Taking longer than {self.__timeout_seconds} seconds to turn. Cancelling action...")
             #     break
@@ -153,49 +174,62 @@ class AutoBoat:
         """Make the boat move a certain distance in feet in a certain heading.
         If heading is not specified, then boat moves straight.
 
-        ARGS:
+        Args:
             distance (float): The distance to move forward in feet 
             heading (float): The heading in degrees to turn
             error_bound (float): The distance to stop boat from moving
         """
+        if not self.__armed:
+            self.logger.log_error("Can't make boat move, it isn't armed...")
+            return
+
         # calculate the new heading
-        heading += await self.get_heading()
-        heading = heading % 360
+        current = await self.get_heading()
+        self.logger.log_debug(f"Current heading is {current:.2f} degrees")
+        heading = current + heading
+        heading = ((heading % 360) + 360) % 360
+        self.logger.log_debug(f"New heading is {heading:.2f} degrees")
 
         # calculate the new coordinates
         alt_type = PositionGlobalYaw.AltitudeType.REL_HOME
         starting_position = await self.get_position()
-        new_coords = coords.get_new_coordinate(starting_position, distance, heading)
+        new_coords = coords.get_new_coordinate(
+            starting_position, distance, heading)
 
         # create the new PositionGlobalYaw
-        new_pos_global = PositionGlobalYaw(new_coords[0], new_coords[1], 0, heading, alt_type)
+        new_pos_global = PositionGlobalYaw(
+            new_coords[0], new_coords[1], 0, heading, alt_type)
 
         # Tell the boat to go to the new PositionGlobalYaw
-        self.logger.log_warn(f"Boat going to head to ({new_coords[0]:.2f}, {new_coords[1]:.2f})")
-        await self.vehicle.offboard.set_position_global(new_pos_global)
-        
-        start_time = time.time()
         current_position = await self.get_position()
-        distance = coords.coord_dist(new_coords, current_position)
-        while distance > error_bound:
+        dist_to_goal = coords.coord_dist(new_coords, current_position)
+        self.logger.log_warn(
+            f"Boat going to head to ({new_coords[0]:.4f}, {new_coords[1]:.4f}), {dist_to_goal:.2f} feet away")
+        await self.vehicle.offboard.set_position_global(new_pos_global)
+
+        start_time = time.time()
+        while dist_to_goal > error_bound:
             # if time.time() - start_time > self.__timeout_seconds:
             #     self.logger.log_error(f"Took longer than {self.__timeout_seconds} seconds. Cancelling action...")
             #     break
 
-            self.logger.log_debug(f'Distance to Goal: {distance:05.2f} feet', beg='\r', end='')
+            self.logger.log_debug(
+                f'Distance to Goal: {dist_to_goal:05.2f} feet', beg='\r', end='')
+            # self.logger.log_debug(f'Distance to Goal: {dist_to_goal:05.2f} feet')
             # self.logger.log_debug(f'Current position: ({current_position[0]:.2f}, {current_position[1]:.2f})')
             current_position = await self.get_position()
-            distance = coords.coord_dist(new_coords, current_position)
+            dist_to_goal = coords.coord_dist(new_coords, current_position)
             await asyncio.sleep(0.5)
 
         print()
         self.logger.log_ok("Operation complete!")
 
     async def __enable_offboard(self) -> bool:
-        """ Enables offboard mode for the boat. Returns a boolean indicating
+        """Enables offboard mode for the boat. Returns a boolean indicating
         whether the operation was successful
 
-        bool: Return True if offboard mode was enabled, False otherwise
+        Returns:
+            bool: True if offboard was enabled, False otherwise
         """
         if not self.__armed:
             self.logger.log_error(
@@ -205,7 +239,7 @@ class AutoBoat:
         try:
             await self.vehicle.offboard.set_position_ned(PositionNedYaw(0, 0, 0, 0))
             await self.vehicle.offboard.start()
-            return True 
+            return True
         except Exception as e:
             self.logger.log_error(e)
             return False
@@ -215,7 +249,7 @@ class AutoBoat_Jerry:
     def __init__(self):
         self.vehicle = System()
         self.logger = ColorLogger()
-        
+
     async def connect(self, address=None):
         self.logger.log_warn('Waiting for boat to connect...')
         await self.vehicle.connect(system_address='udp://:14540')
@@ -223,7 +257,7 @@ class AutoBoat_Jerry:
             if state.is_connected:
                 self.logger.log_ok('Boat connected')
                 break
-            
+
     async def arm(self):
         async for health in self.vehicle.telemetry.health():
             if health.is_global_position_ok and health.is_home_position_ok:
@@ -234,13 +268,13 @@ class AutoBoat_Jerry:
         self.logger.log_ok('Boat armed')
         await asyncio.sleep(5)
         self.logger.log_ok('Ready for the zoomies!')
-        
+
     async def disarm(self):
         self.logger.log_warn('Disarming the boat')
         # await self.vehicle.action.land()
         await self.vehicle.action.disarm()
         self.logger.log_ok('Boat disarmed')
-    
+
     async def enable_offboard(self):
         self.logger.log_warn('Setting initial setpoint')
         await self.vehicle.offboard.set_velocity_ned(VelocityNedYaw(0.0, 0.0, 0.0, 0.0))
@@ -248,30 +282,30 @@ class AutoBoat_Jerry:
         try:
             await self.vehicle.offboard.start()
         except OffboardError as error:
-            self.logger.log_error(f'Starting offboard mode failed with error code: {error._result.result}')
+            self.logger.log_error(
+                f'Starting offboard mode failed with error code: {error._result.result}')
             self.logger.log_error('Disarming')
             await self.vehicle.action.disarm()
-            
+
     async def disable_offboard(self):
         self.logger.log_warn('Stopping offboard')
         try:
             await self.vehicle.offboard.stop()
         except OffboardError as error:
-            print(f'Stopping offboard mode failed with error code: {error._result.result}')
-    
+            print(
+                f'Stopping offboard mode failed with error code: {error._result.result}')
+
     async def turn(self, heading):
         self.logger.log(f'Turning to heading {heading}')
         await self.vehicle.offboard.set_velocity_ned(VelocityNedYaw(0.0, 0.0, 0.0, heading))
         await asyncio.sleep(5)
-        
+
     async def set_velocity_ned_yaw(self, north, east, down, heading):
         ned = VelocityNedYaw(north, east, down, heading)
         await self.vehicle.offboard.set_velocity_ned(ned)
         await asyncio.sleep(5)
-        
+
     async def set_position_ned_yaw(self, north, east, down, heading):
         ned = PositionNedYaw(north, east, down, heading)
         await self.vehicle.offboard.set_position_ned(ned)
-        await asyncio.sleep(5) 
-
-
+        await asyncio.sleep(5)
