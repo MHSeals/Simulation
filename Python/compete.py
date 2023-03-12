@@ -16,9 +16,10 @@ async def main():
 
     try:
         await boat.ready()
+        # await boat.turn(45)
         await boat.forward(100, error_bound=5)
     except Exception as e:
-        boat.logger.log_error(e)
+        boat.logger.log_error(str(e))
 
     await boat.unready()
 
