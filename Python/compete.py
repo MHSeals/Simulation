@@ -1,6 +1,5 @@
-import time
-import cv2
 import asyncio
+import cv2
 
 from samminhch.vision import BuoyDetector
 from samminhch.autopilot import AutoBoat
@@ -16,8 +15,20 @@ async def main():
 
     try:
         await boat.ready()
-        # await boat.turn(45)
-        await boat.forward(100, error_bound=5)
+        # find the buoys to go to
+        while True:
+            frame = detector.get_latest_frame()
+            detector.detect(frame)
+            detector.logger.log_debug(f'Delta is {detector.delta}')
+
+            if abs(detector.delta) > 10:
+                amount_to_turn = 15 if detector.delta > 0 else -15
+                await boat.forward(distance=10,
+                                   heading=amount_to_turn, error_bound=1)
+            else:
+                await boat.forward(10, heading=0, error_bound=1)
+            await asyncio.sleep(0.1)
+        # await boat.forward(100, heading=-45, error_bound=5)
     except Exception as e:
         boat.logger.log_error(str(e))
 
@@ -33,40 +44,37 @@ async def main():
     #   find_obstacle_buoys
     #   find a way around them
     #   head to the goal
-    # 
-    #   ⬆ check for failsafes while doing all that 
+    #
+    #   ⬆ check for failsafes while doing all that
 
     # await boat.unready()
-    
+
+
 async def main_jerry():
-    boat = AutoBoat_Jerry()
-    await boat.connect()
-    await boat.arm()
-    await boat.enable_offboard()
-    await boat.set_position_ned_yaw(float(-2), float(0), float(0), float(-180))
-    await boat.disable_offboard()
-    await boat.disarm()
+    # boat = AutoBoat_Jerry()
+    # await boat.connect()
+    # await boat.arm()
+    # await boat.enable_offboard()
+    # await boat.set_position_ned_yaw(float(-2),
+    #                                 float(0),
+    #                                 float(0),
+    #                                 float(-180))
+    # await boat.disable_offboard()
+    # await boat.disarm()
+    pass
+
+
+async def detector_test():
+    detector = BuoyDetector()
+    while True:
+        frame = detector.get_latest_frame()
+        cv2.imshow('raw image', frame)
+        detector.detect(frame)
+        cv2.waitKey(1)
+        detector.logger.log_debug(f"Delta is {detector.delta}")
+        await asyncio.sleep(0.1)
 
 if __name__ == '__main__':
     asyncio.run(main())
+    # asyncio.run(detector_test())
     # asyncio.run(main_jerry())
-
-# ---------------------------------------------------------------------------- #
-#                                   CODE DUMP                                  #
-# ---------------------------------------------------------------------------- #
-
-    # while True:
-    #     frame = detector.get_latest_frame()
-    #     if frame is not None:
-    #         result = detector.detect(frame)
-    #         out = cv2.circle(frame, result[0], 4, (255, 255, 255), 1)
-    #         out = cv2.circle(out, result[1], 4, (255, 100, 255), 1)
-    #         out = cv2.circle(out, result[2], 4, (255, 255, 255), 1)
-    #         out = cv2.circle(out, result[3], 4, (100, 255, 255), 1)
-    #         cv2.imshow("Buoys", out)
-
-    #     if cv2.waitKey(1) & 0xFF == ord('q'):
-    #         break
-
-    #     # don't want computer to die
-    #     await asyncio.sleep(0.5)

@@ -200,38 +200,39 @@ class AutoBoat:
         # calculate the new heading
         current = await self.get_heading()
         self.logger.log_debug(f"Current heading is {current:.2f} degrees")
-        heading = current + heading
-        heading = ((heading % 360) + 360) % 360
-        self.logger.log_debug(f"New heading is {heading:.2f} degrees")
+        target = current + heading
+        target = ((target % 360) + 360) % 360
+        self.logger.log_debug(f"New heading is {target:.2f} degrees")
 
         # calculate the new coordinates
         alt_type = PositionGlobalYaw.AltitudeType.REL_HOME
         starting_position = await self.get_position()
         new_coords = coords.get_new_coordinate(
-            starting_position, distance, heading)
+            starting_position, distance, target)
 
         # create the new PositionGlobalYaw
         new_pos_global = PositionGlobalYaw(
-            new_coords[0], new_coords[1], 0, heading, alt_type)
+            new_coords[0], new_coords[1], 0, target, alt_type)
 
         # Tell the boat to go to the new PositionGlobalYaw
         current_position = await self.get_position()
         dist_to_goal = coords.coord_dist(new_coords, current_position)
+        degree_delta = abs(current - target)
+        direction = 'left' if target > 0 else 'right'
         self.logger.log_warn(
-            f"Boat going to head to ({new_coords[0]:.4f}, {new_coords[1]:.4f}), {dist_to_goal:.2f} feet away")
+            f"Boat going to head to ({new_coords[0]:.4f}, {new_coords[1]:.4f})"
+            f", {dist_to_goal:.2f} feet away @ {heading:.2f}° {direction}"
+        )
+
         await self.vehicle.offboard.set_position_global(new_pos_global)
 
-        start_time = time.time()
-        while dist_to_goal > error_bound:
-            # if time.time() - start_time > self.__timeout_seconds:
-            #     self.logger.log_error(f"Took longer than {self.__timeout_seconds} seconds. Cancelling action...")
-            #     break
+        while dist_to_goal > error_bound or degree_delta > 5:
 
             self.logger.log_debug(
-                f'Distance to Goal: {dist_to_goal:05.2f} feet   ', beg='\r', end='')
-            # self.logger.log_debug(f'Distance to Goal: {dist_to_goal:05.2f} feet')
-            # self.logger.log_debug(f'Current position: ({current_position[0]:.2f}, {current_position[1]:.2f})')
+                f'{dist_to_goal:05.2f} feet, {degree_delta:.2f}° from goal',
+                beg='\r', end='')
             current_position = await self.get_position()
+            current = await self.get_heading()
             dist_to_goal = coords.coord_dist(new_coords, current_position)
             await asyncio.sleep(0.5)
 
@@ -261,14 +262,16 @@ class AutoBoat:
         await self.vehicle.action.return_to_launch()
 
         current_position = await self.get_position()
-        dist_from_home = coords.coord_dist(current_position, self.__home_coordinates)
+        dist_from_home = coords.coord_dist(
+            current_position, self.__home_coordinates)
         while dist_from_home > error_bound:
             self.logger.log_debug(
                 f'Distance from Home: {dist_from_home:05.2f} feet   ',
                 beg='\r', end='')
             await asyncio.sleep(0.1)
             current_position = await self.get_position()
-            dist_from_home = coords.coord_dist(current_position, self.__home_coordinates)
+            dist_from_home = coords.coord_dist(
+                current_position, self.__home_coordinates)
 
         self.logger.log_ok('Arrived home!', beg='\n')
 
