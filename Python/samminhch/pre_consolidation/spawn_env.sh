@@ -48,7 +48,7 @@ while gz model --spawn-file="${BOAT_PATH}" --model-name=bote -x 0 -y 0 -z 1 -Y 3
 done
 
 # spawn our obstacles
-python /root/src/roboboat-code/samminhch/pre_consolidation/spawn_buoys.py
+python /root/src/roboboat-code/samminhch/pre_consolidation/spawn_buoys.py &
 
 wait $!
 
