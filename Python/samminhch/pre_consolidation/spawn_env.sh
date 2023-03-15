@@ -17,57 +17,56 @@ BOAT_PATH="/root/src/roboboat-models/Boat/boat.sdf"
 RED_BUOY_PATH="/root/src/roboboat-models/Buoy/red_buoy.sdf"
 GREEN_BUOY_PATH="/root/src/roboboat-models/Buoy/green_buoy.sdf"
 
-echo -e "GAZEBO_PLUGIN_PATH $GAZEBO_PLUGIN_PATH"
-echo -e "GAZEBO_MODEL_PATH $GAZEBO_MODEL_PATH"
-echo -e "LD_LIBRARY_PATH $LD_LIBRARY_PATH"
+# echo -e "GAZEBO_PLUGIN_PATH $GAZEBO_PLUGIN_PATH"
+# echo -e "GAZEBO_MODEL_PATH $GAZEBO_MODEL_PATH"
+# echo -e "LD_LIBRARY_PATH $LD_LIBRARY_PATH"
 
-# set -e
+set -e
 
-# rootfs="/root/src/px4-autopilot/build/sitl_default/rootfs"
-# mkdir -p "$rootfs"
+rootfs="/root/src/px4-autopilot/build/sitl_default/rootfs"
+mkdir -p "$rootfs"
 
-# # reset sim PID
-# SIM_PID=0
+# reset sim PID
+SIM_PID=0
 
-# # kill previous gazebo if exists
-# pkill -x gazebo || true
-# pkill -x gzserver || true
+# kill previous gazebo if exists
+pkill -x gazebo || true
+pkill -x gzserver || true
 
-# # start gzserver with our world
-# # gzserver empty.world &
-# gzserver ${WORLD_PATH} &
-# # gzserver ocean.world &
+# start gzserver with our world
+# gzserver empty.world &
+gzserver ${WORLD_PATH} &
+# gzserver ocean.world &
 
-# # save gzserver PID to kill later
-# SIM_PID=$!
+# save gzserver PID to kill later
+SIM_PID=$!
 
-# # spawn our boat
-# while gz model --spawn-file="${BOAT_PATH}" --model-name=bote -x 0 -y 0 -z 1 -Y 3.14 2>&1 | grep -q "An instance of Gazebo is not running."; do
-#     echo "gzserver not ready yet, trying again!"
-#     sleep 1
-# done
+# spawn our boat
+while gz model --spawn-file="${BOAT_PATH}" --model-name=bote -x 0 -y 0 -z 1 -Y 3.14 2>&1 | grep -q "An instance of Gazebo is not running."; do
+    echo "gzserver not ready yet, trying again!"
+    sleep 1
+done
 
-# # spawn our obstacles
-# # TODO: change this to spawn all 6 tasks
-# python /root/src/roboboat-code/spawn_buoys.py
+# spawn our obstacles
+python /root/src/roboboat-code/samminhch/pre_consolidation/spawn_buoys.py
 
-# # wait $!
+wait $!
 
-# # start gzclient GUI, not following
-# sleep 3
-# nice -n 20 gzclient --gui-client-plugin libgazebo_user_camera_plugin.so &
+# start gzclient GUI, not following
+sleep 3
+nice -n 20 gzclient --gui-client-plugin libgazebo_user_camera_plugin.so &
 
-# # save gzclient PID to kill later
-# GUI_PID=$!
+# save gzclient PID to kill later
+GUI_PID=$!
 
-# pushd "$rootfs" >/dev/null
+pushd "$rootfs" >/dev/null
 
-# # no longer kill on error
-# set +e
+# no longer kill on error
+set +e
 
-# # starts SITL
-# eval ${SITL_EXEC} -d "/root/src/px4-autopilot/build/px4_sitl_default"/etc
+# starts SITL
+eval ${SITL_EXEC} -d "/root/src/px4-autopilot/build/px4_sitl_default"/etc
 
-# # killing everything
-# echo -n "Killing gzserver in background (pid ${SIM_PID})... " && kill -9 $SIM_PID && echo "Done."
-# echo -n "Killing gzclient in background (pid ${GUI_PID})... " && kill -9 $GUI_PID && echo "Done."
+# killing everything
+echo -n "Killing gzserver in background (pid ${SIM_PID})... " && kill -9 $SIM_PID && echo "Done."
+echo -n "Killing gzclient in background (pid ${GUI_PID})... " && kill -9 $GUI_PID && echo "Done."
