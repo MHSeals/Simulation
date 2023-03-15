@@ -131,9 +131,11 @@ class EnvironmentManager:
             wait (int, optional): Delay in seconds for gzserver to come up. Defaults to 3.
         """
         self.logger.log_warn(f'Starting gzserver with world file')
-        command = ['gzserver', self.world_file]
         if self.verbose:
+            command = ['gzserver', '--verbose', self.world_file]
             self.logger.log_debug(f'COMMAND = {str(command)}')
+        else:
+            command = ['gzserver', self.world_file]
         self.gz_server = subprocess.Popen(command)
         self.logger.log_warn(f'Waiting for {wait} seconds for gzserver to come up...')
         time.sleep(wait)
@@ -224,9 +226,11 @@ class EnvironmentManager:
 
     def spawn_gzclient(self) -> None:
         """Start Gazebo UI Client to visualize environment."""
-        command = f'nice -n 20 gzclient --gui-client-plugin libgazebo_user_camera_plugin.so'.split(' ')
         if self.verbose:
+            command = f'nice -n 20 gzclient --verbose --gui-client-plugin libgazebo_user_camera_plugin.so'.split(' ')
             self.logger.log_debug(f'COMMAND = {command}')
+        else:
+            command = f'nice -n 20 gzclient --gui-client-plugin libgazebo_user_camera_plugin.so'.split(' ')
         self.gzclient = subprocess.Popen(command)
 
     def spawn_sitl(self) -> Union[int, None]:

@@ -1,6 +1,6 @@
 from samminhch.simutils import EnvironmentManager
 
-e = EnvironmentManager()
+e = EnvironmentManager(debug=True)
 try:
     e.start_simulation(headless=False)
 except Exception as err:
