@@ -5,6 +5,4 @@ try:
     e.start_simulation(headless=False)
 except Exception as err:
     print(err)
-    e.kill_all_gz_processes()
-
-# e.debug_simulation()
+    e.kill_gazebo_subprocesses()

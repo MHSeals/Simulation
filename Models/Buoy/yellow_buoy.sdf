@@ -1,0 +1,76 @@
+<?xml version='1.0'?>
+<sdf version='1.5'>
+
+    <model name='yellow_buoy'>
+        <pose>0 0 0 0 0 0</pose>
+        <link name='buoy_link'>
+            <pose>0 0 0 0 0 0</pose>
+            <inertial>
+                <pose>0 0 0 0 0 0</pose>
+                <mass>227</mass>
+                <inertia>
+                    <ixx>181.42</ixx>
+                    <ixy>0</ixy>
+                    <ixz>0</ixz>
+                    <iyy>408.203</iyy>
+                    <iyz>0</iyz>
+                    <izz>495.037</izz>
+                </inertia>
+            </inertial>
+
+            <visual name='body_visual'>
+                <pose>0 0 0.4 0 0 0</pose>
+                <geometry>
+                    <cylinder>
+                        <radius>0.3</radius>
+                        <length>0.5</length>
+                    </cylinder>
+                </geometry>
+                <material>
+                    <script>
+                        <uri>file://media/materials/scripts/gazebo.material</uri>
+                        <name>Gazebo/Yellow</name>
+                    </script>
+                </material>
+            </visual>
+
+            <collision name='body_collision'>
+                <pose>0 0 0.4 0 0 0</pose>
+                <geometry>
+                    <cylinder>
+                        <radius>0.3</radius>
+                        <length>0.5</length>
+                    </cylinder>
+                </geometry>
+            </collision>
+        </link>
+
+        <plugin name='usv_dynamics_wamv_dynamics_plugin' filename='libgazebo_usv_dynamics_plugin.so'>
+            <bodyName>buoy_link</bodyName>
+            <waterLevel>0</waterLevel>
+            <waterDensity>997.8</waterDensity>
+            <xDotU>0.0</xDotU>
+            <yDotV>0.0</yDotV>
+            <nDotR>0.0</nDotR>
+            <xU>51.3</xU>
+            <xUU>72.4</xUU>
+            <yV>102.6</yV>
+            <yVV>0.0</yVV>
+            <zW>500.0</zW>
+            <kP>50.0</kP>
+            <mQ>50.0</mQ>
+            <nR>400.0</nR>
+            <nRR>0.0</nRR>
+            <hullRadius>0.213</hullRadius>
+            <boatWidth>2.4</boatWidth>
+            <boatLength>4.9</boatLength>
+            <length_n>2</length_n>
+            <wave_model>ocean_waves</wave_model>
+        </plugin>
+
+        <!-- <plugin name="buoyancy" filename="libBuoyancyPlugin.so">
+            <fluid_density>999.1026</fluid_density>
+        </plugin> -->
+
+    </model>
+</sdf>
