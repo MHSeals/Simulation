@@ -31,7 +31,7 @@ RUN mkdir -p /root/src && \
 
 # making sure we have MAVSDK
 # see https://mavsdk.mavlink.io/main/en/python/quickstart.html#install
-RUN python -m pip install --upgrade pip setuptools wheel testresources mavsdk aioconsole opencv-python
+RUN python -m pip install --upgrade pip setuptools wheel testresources mavsdk aioconsole opencv-python pymavlink mavproxy
 
 # some voodoo gstream to OpenCV stuff
 RUN apt-get update && \
