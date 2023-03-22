@@ -11,11 +11,11 @@ SRC_DIR   = '/root/src/px4-autopilot'
 BUILD_DIR = SRC_DIR + '/build/px4_sitl_default'
 SITL_EXEC = BUILD_DIR + '/bin/px4'
 SITL_SUPP = BUILD_DIR + '/etc'
-ROOT_FS   = SRC_DIR + '/build/sitl_default/rootfs'
+ROOT_FS   = SRC_DIR + '/build/px4_sitl_default/rootfs'
 
 os.environ['GAZEBO_PLUGIN_PATH']  = f':{BUILD_DIR}/build_gazebo-classic'
 os.environ['GAZEBO_MODEL_PATH']   = f':{SRC_DIR}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models'
-os.environ['LD_LIBRARY_PATH']    += f':{BUILD_DIR}/build_gazebo-classic'
+# os.environ['LD_LIBRARY_PATH']    += f':{BUILD_DIR}/build_gazebo-classic'
 os.environ['PX4_SIM_MODEL']       = 'gazebo-classic_boat'
 
 class EnvironmentManager:
@@ -72,7 +72,7 @@ class EnvironmentManager:
         if self.verbose:
             self.logger.log_debug(f'GAZEBO_PLUGIN_PATH = {os.environ["GAZEBO_PLUGIN_PATH"]}')
             self.logger.log_debug(f'GAZEBO_MODEL_PATH  = {os.environ["GAZEBO_MODEL_PATH"]}')
-            self.logger.log_debug(f'LD_LIBRARY_PATH    = {os.environ["LD_LIBRARY_PATH"]}')
+            # self.logger.log_debug(f'LD_LIBRARY_PATH    = {os.environ["LD_LIBRARY_PATH"]}')
             self.logger.log_debug(f'PX4_SIM_MODEL      = {os.environ["PX4_SIM_MODEL"]}')
             for key, value in self.models.items():
                 self.logger.log_debug(f'{key.upper() + "_MODEL":<18} = {value}')
