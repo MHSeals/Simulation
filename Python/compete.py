@@ -23,45 +23,25 @@ async def main():
 
             if abs(detector.delta) > 10:
                 amount_to_turn = 15 if detector.delta > 0 else -15
-                await boat.forward(distance=10,
-                                   heading=amount_to_turn, error_bound=1)
+                await boat.set_speed(10, 3)
             else:
-                await boat.forward(10, heading=0, error_bound=1)
-            await asyncio.sleep(0.1)
-        # await boat.forward(100, heading=-45, error_bound=5)
+                await boat.set_speed(10, 3)
     except Exception as e:
         boat.logger.log_error(str(e))
 
     await boat.unready()
 
-    # get goal coordinates
-    # detection_info = None
+async def velocity_test():
+    boat = AutoBoat()
+    await boat.connect()
 
-    # go to those goal coordinates
-    # boat.turn(detection_info.heading)
+    try:
+        await boat.ready()
+        await boat.set_speed(10, 10)
+    except Exception as e:
+        boat.logger.log_error(str(e))
 
-    # while boat isn't at goal:
-    #   find_obstacle_buoys
-    #   find a way around them
-    #   head to the goal
-    #
-    #   ⬆ check for failsafes while doing all that
-
-    # await boat.unready()
-
-
-async def main_jerry():
-    # boat = AutoBoat_Jerry()
-    # await boat.connect()
-    # await boat.arm()
-    # await boat.enable_offboard()
-    # await boat.set_position_ned_yaw(float(-2),
-    #                                 float(0),
-    #                                 float(0),
-    #                                 float(-180))
-    # await boat.disable_offboard()
-    # await boat.disarm()
-    pass
+    await boat.unready()
 
 
 async def detector_test():

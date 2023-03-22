@@ -3,7 +3,7 @@ import asyncio
 from typing import Optional, Tuple
 from mavsdk import System
 from mavsdk.offboard import PositionGlobalYaw, PositionNedYaw
-from mavsdk.offboard import OffboardError, VelocityNedYaw
+from mavsdk.offboard import OffboardError, VelocityNedYaw, VelocityBodyYawspeed
 
 from samminhch.simutils import ColorLogger
 import samminhch.coordinate_helper as coords
@@ -234,6 +234,43 @@ class AutoBoat:
             current_position = await self.get_position()
             current = await self.get_heading()
             dist_to_goal = coords.coord_dist(new_coords, current_position)
+            await asyncio.sleep(0.5)
+
+        self.logger.log_ok("Operation complete!", beg='\n')
+
+    async def set_speed(self, speed: float, duration: float, heading: float = 0, error_bound: float = 5):
+        if not self.__armed:
+            self.logger.log_error("Can't make boat move, it isn't armed...")
+            return
+
+        current = await self.get_heading()
+        self.logger.log_debug(f"Current heading is {current:.2f} degrees")
+        target = current + heading
+        target = ((target % 360) + 360) % 360
+        self.logger.log_debug(f"New heading is {target:.2f} degrees")
+
+        self.logger.log_warn(
+            f"Boat is going to move at {speed} m/s for {duration} seconds")
+        await self.vehicle.offboard.set_velocity_body(
+            VelocityBodyYawspeed(speed, 0, 0, target))
+
+        degree_delta = abs(current - target)
+        direction = 'left' if target > 0 else 'right'
+
+        self.logger.log_warn(
+            f"Going {speed:.2f} m/s @ {heading:.2f}° {direction}"
+        )
+
+        current_time = time.time()
+        while True:
+            if time.time() - current_time > duration:
+                break
+
+            self.logger.log_debug(
+                f'{degree_delta:.2f}° from goal',
+                beg='\r', end='')
+            current = await self.get_heading()
+            degree_delta = abs(current - target)
             await asyncio.sleep(0.5)
 
         self.logger.log_ok("Operation complete!", beg='\n')
