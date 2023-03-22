@@ -94,7 +94,7 @@ class AutoBoat:
         async for position in self.vehicle.telemetry.position():
             return (position.latitude_deg, position.longitude_deg)
 
-    async def get_position_ned(self) -> Tuple[float, float]:
+    async def get_position_ned(self) -> Tuple[float, float, float]:
         """Returns the boat's current NED position
 
         Returns:
@@ -102,14 +102,19 @@ class AutoBoat:
         """
         north = -1
         east = -1
+        speed = -1
         async for pos_vel_ned in self.vehicle.telemetry.position_velocity_ned():
             north = pos_vel_ned.position.north_m
             east = pos_vel_ned.position.east_m
+
+            north_v = pos_vel_ned.velocity.north_m
+            east_v = pos_vel_ned.velocity.east_m
+            speed = (north_v ** 2 + east_v ** 2) ** 0.5
             break
 
         # convert these values to feet and return them
         meters_to_feet = 3.281
-        return (north * meters_to_feet, east * meters_to_feet)
+        return (north * meters_to_feet, east * meters_to_feet, speed)
 
     async def get_heading(self) -> float:
         """Returns the boat's current heading
@@ -255,10 +260,12 @@ class AutoBoat:
         self.logger.log_warn(
             f"Boat is going to move at {speed} m/s for {duration} seconds")
         await self.vehicle.offboard.set_velocity_body(
-            VelocityBodyYawspeed(speed, 0, 0, target))
+            VelocityBodyYawspeed(speed, 0, 0, target)
 
-        degree_delta = abs(current - target)
+        # degree_delta = abs(current - target)
         direction = 'left' if target > 0 else 'right'
+
+        current_speed = (await self.get_position_ned())[2]
 
         self.logger.log_warn(
             f"Going {speed:.2f} m/s @ {heading:.2f}° {direction}"
@@ -270,10 +277,11 @@ class AutoBoat:
                 break
 
             self.logger.log_debug(
-                f'{degree_delta:.2f}° from goal',
+                f'{current:.2f}° @ {current_speed:.2f} m/s',
                 beg='\r', end='')
             current = await self.get_heading()
-            degree_delta = abs(current - target)
+            current_speed = (await self.get_position_ned())[2]
+            # degree_delta = abs(current - target)
             await asyncio.sleep(0.5)
 
         self.logger.log_ok("Operation complete!", beg='\n')
