@@ -55,7 +55,7 @@ class AutoBoat:
             return False
         return True
 
-    async def unready(self):
+    async def unready(self, rtl: bool = True):
         """This stops offboard mode on the boat, and disarms the boat. If
         there are any errors trying to disarm the boat, it will kill the boat.
         """
@@ -68,10 +68,11 @@ class AutoBoat:
                 await self.vehicle.offboard.stop()
                 self.logger.log_ok("Offboard mode disabled!")
 
-            # Make the boat navigate home
-            self.logger.log_warn("Boat returning home")
-            await self.return_home()
-            self.logger.log_ok("Boat arrived home!")
+            if rtl:
+                # Make the boat navigate home
+                self.logger.log_warn("Boat returning home")
+                await self.return_home()
+                self.logger.log_ok("Boat arrived home!")
 
             self.logger.log_warn("Disarming boat")
             await self.vehicle.action.land()
@@ -243,10 +244,12 @@ class AutoBoat:
             self.logger.log_error("Can't make boat move, it isn't armed...")
             return
 
+        # current = await self.get_heading()
+        # self.logger.log_debug(f"Current heading is {current:.2f} degrees")
+        # target = current + heading
+        # target = ((target % 360) + 360) % 360
         current = await self.get_heading()
-        self.logger.log_debug(f"Current heading is {current:.2f} degrees")
-        target = current + heading
-        target = ((target % 360) + 360) % 360
+        target = heading
         self.logger.log_debug(f"New heading is {target:.2f} degrees")
 
         self.logger.log_warn(

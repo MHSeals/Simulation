@@ -4,12 +4,13 @@ import cv2
 from samminhch.vision import BuoyDetector
 from samminhch.autopilot import AutoBoat
 
+connection_string = 'serial:///dev/ttyACM0'
 
 async def main():
     # Create the boat and arm it!
     detector = BuoyDetector()
     boat = AutoBoat()
-    await boat.connect()
+    await boat.connect(connection_string)
 
     # ready the boat
 
@@ -31,17 +32,18 @@ async def main():
 
     await boat.unready()
 
+# make the motors spin kinda slow for 5 seconds
 async def velocity_test():
     boat = AutoBoat()
-    await boat.connect()
+    await boat.connect(connection_string)
 
     try:
         await boat.ready()
-        await boat.set_speed(10, 10)
+        await boat.set_speed(0.25, 5)
     except Exception as e:
         boat.logger.log_error(str(e))
 
-    await boat.unready()
+    await boat.unready(rtl=False)
 
 
 async def detector_test():
@@ -55,6 +57,7 @@ async def detector_test():
         await asyncio.sleep(0.1)
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    # asyncio.run(main())
+    asyncio.run(velocity_test())
     # asyncio.run(detector_test())
     # asyncio.run(main_jerry())
