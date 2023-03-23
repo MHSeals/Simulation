@@ -1,79 +1,127 @@
 import asyncio
 import time
 
-from samminhch.vision import BuoyDetector
+from samminhch.vision import BuoyDetector, LibrealsenseBuoyDetector
 from samminhch.autopilot import AutoBoat
 from mavsdk.telemetry import FlightMode
 
 connection_string = 'serial:///dev/ttyACM0'
 
 async def main():
-    # Connect to the boat on startup
-    # Check the status of the boat
-    # # start the autonomous code if the status is set to OFFBOARD
-
-    # Create the boat and arm it!
+    detector = LibrealsenseBuoyDetector()
     boat = AutoBoat()
     await boat.connect(connection_string)
 
     mode = boat.get_flight_mode()
     armed = boat.is_armed()
 
-    timeout = 10
-    start_time = time.time()
-
     try:
-        while mode == FlightMode.OFFBOARD and armed:
-            if time.time() - start_time >= timeout:
-                break
-            await boat.vehicle.action.set_actuator(0, 0.125)
+        while True:
+            if mode != FlightMode.OFFBOARD and not armed:
+                await asyncio.sleep(0.5)
+                continue
+            else:
+                # THIS PART IS FOR BEN AND I TO INTEGRATE
+                # if can't find buoys in 30 seconds, break out while loop
+                heading = detector.get_heading()
 
+                if heading > 10:
+                    await boat.forward(10, heading, error_bound=5)
+                else:
+                    await boat.forward(10, error_bound=5)
+
+            # update ending conditions
             mode = boat.get_flight_mode()
             armed = boat.is_armed()
 
+            await asyncio.sleep(0.5)
+
+            
+    except Exception as e:
+        boat.logger.log_error(str(e))
+
+    await boat.unready()
+
+
+async def simulation_test():
+    detector = BuoyDetector()
+
+    boat = AutoBoat()
+    await boat.connect()
+
+    start_time = time.time()
+    try:
+        await boat.ready()
+
+        while True:
+            frame = detector.get_latest_frame()
+            detector.detect(frame)
+
+            if abs(detector.delta) > 10:
+                start_time = time.time()
+                heading = 15 if detector.delta > 0 else -15
+                await boat.forward(10, heading, error_bound=5)
+            else:
+                # if it hasn't seen a buoy in 30 seconds, then break out of loop
+                if start_time - time.time() > 30:
+                    break
+
+                await boat.forward(10, error_bound=5)
 
     except Exception as e:
-        print(str(e))
+        boat.logger.log_error(str(e))
 
-    await boat.unready(rtl=False)
+    await boat.unready()
 
-    # try:
-    #     await boat.ready()
-    #     # find the buoys to go to
-    #     while True:
-    #         frame = detector.get_latest_frame()
-    #         detector.detect(frame)
-    #         detector.logger.log_debug(f'Delta is {detector.delta}')
-    #
-    #         if abs(detector.delta) > 10:
-    #             amount_to_turn = 15 if detector.delta > 0 else -15
-    #             await boat.forward(20, amount_to_turn, error_bound=5)
-    #         else:
-    #             # forward
-    #             await boat.forward(20, 0, error_bound=5)
-    # except Exception as e:
-    #     boat.logger.log_error(str(e))
-    #
-    # await boat.unready()
-
-# make the motors spin kinda slow for 5 seconds
-async def velocity_test():
-    boat = AutoBoat()
-    await boat.connect(connection_string)
-
-
-async def detector_test():
+async def simulation_actuator():
     detector = BuoyDetector()
-    while True:
-        frame = detector.get_latest_frame()
-        cv2.imshow('raw image', frame)
-        detector.detect(frame)
-        cv2.waitKey(1)
-        detector.logger.log_debug(f"Delta is {detector.delta}")
-        await asyncio.sleep(0.1)
 
+    boat = AutoBoat()
+    await boat.connect()
+    start_time = time.time()
+
+    try:
+        await boat.ready()
+        while True:
+            frame = detector.get_latest_frame()
+            detector.detect(frame)
+
+            if abs(detector.delta) > 10:
+                start_time = 0
+                await boat.vehicle.action.set_actuator(1 if detector.delta > 0 else 2,
+                                                       0.5)
+            else:
+                # maintain thrusters
+                # if it hasn't seen a buoy in 30 seconds, then break out of loop
+                if start_time - time.time() > 30:
+                    break
+
+                await boat.vehicle.action.set_actuator(1, 0.25)
+                await boat.vehicle.action.set_actuator(2, 0.25)
+                pass
+        
+        
+    except Exception as e:
+        boat.logger.log_error(str(e))
+
+    await boat.unready()
+
+
+async def test_actuator():
+    boat = AutoBoat()
+    await boat.connect()
+    
+    try:
+        await boat.vehicle.action.set_actuator(1, 1)
+        await asyncio.sleep(10)
+
+    except Exception as e:
+        boat.logger.log_error(str(e))
+
+    await boat.unready()
 if __name__ == '__main__':
-    asyncio.run(main())
-    # asyncio.run(velocity_test())
-    # asyncio.run(detector_test())
-    # asyncio.run(main_jerry())
+    # asyncio.run(main())
+    asyncio.run(test_actuator())
+    # asyncio.run(simulation_test())
+    # asyncio.run(simulation_actuator())
+    # asyncio.run(main_actuator())

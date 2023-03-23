@@ -4,6 +4,13 @@ import time
 from .pre_consolidation.gstream import Video
 from .simutils import ColorLogger
 
+class LibrealsenseBuoyDetector:
+    def __init__(self) -> None:
+        pass
+
+    def get_heading() -> float:
+        #TODO
+        pass
 
 class BuoyDetector:
     def __init__(self, im_width=640):
