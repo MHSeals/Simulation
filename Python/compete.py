@@ -28,6 +28,10 @@ async def main():
                 break
             await boat.vehicle.action.set_actuator(0, 0.125)
 
+            mode = boat.get_flight_mode()
+            armed = boat.is_armed()
+
+
     except Exception as e:
         print(str(e))
 
