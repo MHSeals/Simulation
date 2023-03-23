@@ -4,6 +4,7 @@ import time
 from samminhch.vision import BuoyDetector, LibrealsenseBuoyDetector
 from samminhch.autopilot import AutoBoat
 from mavsdk.telemetry import FlightMode
+from mavsdk.offboard import VelocityBodyYawspeed, ActuatorControl, ActuatorControlGroup
 
 connection_string = 'serial:///dev/ttyACM0'
 
@@ -14,6 +15,7 @@ async def main():
 
     mode = boat.get_flight_mode()
     armed = boat.is_armed()
+    start_time = time.time()
 
     try:
         while True:
@@ -23,12 +25,16 @@ async def main():
             else:
                 # THIS PART IS FOR BEN AND I TO INTEGRATE
                 # if can't find buoys in 30 seconds, break out while loop
-                heading = detector.get_heading()
-
-                if heading > 10:
-                    await boat.forward(10, heading, error_bound=5)
+                if not detector.has_buoy():
+                    if time.time() - start_time >= 30:
+                        break
                 else:
-                    await boat.forward(10, error_bound=5)
+                    heading = detector.get_heading()
+
+                    if heading > 10:
+                        await boat.forward(10, heading, error_bound=5)
+                    else:
+                        await boat.forward(10, error_bound=5)
 
             # update ending conditions
             mode = boat.get_flight_mode()
@@ -110,18 +116,23 @@ async def simulation_actuator():
 async def test_actuator():
     boat = AutoBoat()
     await boat.connect()
-    
+
     try:
-        await boat.vehicle.action.set_actuator(1, 1)
+        await boat.ready()
+        boat.logger.log_warn("Making the boat go for 10 seconds...")
+        actuator_control = ActuatorControl(ActuatorControlGroup([0.5, 0.5]))
+
+        await boat.vehicle.offboard.set_actuator_control(actuator_control)
         await asyncio.sleep(10)
+        boat.logger.log_ok("Operation complete!")
 
     except Exception as e:
         boat.logger.log_error(str(e))
 
-    await boat.unready()
+    await boat.unready(rtl=True)
 if __name__ == '__main__':
     # asyncio.run(main())
-    asyncio.run(test_actuator())
-    # asyncio.run(simulation_test())
+    # asyncio.run(test_actuator())
+    asyncio.run(simulation_test())
     # asyncio.run(simulation_actuator())
     # asyncio.run(main_actuator())

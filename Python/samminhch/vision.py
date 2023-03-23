@@ -12,6 +12,10 @@ class LibrealsenseBuoyDetector:
         #TODO
         pass
 
+    def has_buoy() -> float:
+        #TODO
+        pass
+
 class BuoyDetector:
     def __init__(self, im_width=640):
         self.video = Video()

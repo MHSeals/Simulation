@@ -45,9 +45,11 @@ class AutoBoat:
             bool: True if boat was armed and in offboard mode, False if anything bad happens
         """
         self.logger.log_warn("Arming the boat")
-        arm = await self.__arm()
+        arm = await self.arm()
+        self.logger.log_ok("Boat armed!")
         self.logger.log_warn("Enabling offboard mode")
-        offboard = await self.__enable_offboard()
+        offboard = await self.enable_offboard()
+        self.logger.log_ok("Offboard mode enabled!")
 
         if not arm or not offboard:
             await self.unready()
@@ -123,7 +125,7 @@ class AutoBoat:
         async for heading in self.vehicle.telemetry.heading():
             return heading.heading_deg
 
-    async def __arm(self) -> bool:
+    async def arm(self) -> bool:
         """Attempts to arm the boat. Cancels arming if it takes longer than
         self.__timeout_seconds.
 
@@ -235,7 +237,7 @@ class AutoBoat:
 
         await self.vehicle.offboard.set_position_global(new_pos_global)
 
-        while dist_to_goal > error_bound or degree_delta > 5:
+        while dist_to_goal > error_bound and degree_delta > 5:
 
             self.logger.log_debug(
                 f'{dist_to_goal:05.2f} feet, {degree_delta:.2f}° from goal',
@@ -294,7 +296,7 @@ class AutoBoat:
         async for flight_mode in self.vehicle.telemetry.flight_mode():
             return flight_mode
 
-    async def __enable_offboard(self) -> bool:
+    async def enable_offboard(self) -> bool:
         """Enables offboard mode for the boat. Returns a boolean indicating
         whether the operation was successful
 
