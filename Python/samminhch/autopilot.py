@@ -23,7 +23,6 @@ class AutoBoat:
     def __init__(self, timeout_seconds=30):
         self.vehicle = System()
         self.logger = ColorLogger()
-        self.__armed = False
         self.__home_coordinates = ()
         self.__timeout_seconds = timeout_seconds
 
@@ -59,7 +58,8 @@ class AutoBoat:
         """This stops offboard mode on the boat, and disarms the boat. If
         there are any errors trying to disarm the boat, it will kill the boat.
         """
-        if not self.__armed:
+        armed = await self.is_armed()
+        if not armed:
             return False
 
         try:
@@ -82,8 +82,6 @@ class AutoBoat:
             self.logger.log_error("Error occurred, killing boat!")
             await self.vehicle.action.kill()
             # send a signal to cut power to motors
-        finally:
-            self.__armed = False
 
     async def get_position(self) -> Tuple[float, float]:
         """Returns the boat's current geographic position
@@ -145,11 +143,14 @@ class AutoBoat:
         try:
             await self.vehicle.action.arm()
             self.logger.log_ok('Boat armed!')
-            self.__armed = True
             return True
         except Exception as e:
-            self.logger.log_error(e)
+            self.logger.log_error(str(e))
             return False
+
+    async def is_armed(self):
+        async for armed_status in self.vehicle.telemetry.armed():
+            return armed_status
 
     async def turn(self, heading: float, error_bound: float = 1):
         """Make the boat turn (hopefully in place) a certain heading.
@@ -160,7 +161,8 @@ class AutoBoat:
             heading (float): The heading to turn, in degrees. Positive means to
             turn right, and negative means to turn left
         """
-        if not self.__armed:
+        armed = await self.is_armed()
+        if not armed:
             self.logger.log_error(
                 "Boat cannot turn when it isn't armed. Cancelling action...")
             return
@@ -199,7 +201,8 @@ class AutoBoat:
             heading (float): The heading in degrees to turn
             error_bound (float): The distance to stop boat from moving
         """
-        if not self.__armed:
+        armed = await self.is_armed()
+        if not armed:
             self.logger.log_error("Can't make boat move, it isn't armed...")
             return
 
@@ -245,7 +248,8 @@ class AutoBoat:
         self.logger.log_ok("Operation complete!", beg='\n')
 
     async def set_speed(self, speed: float, duration: float, heading: float = 0, error_bound: float = 5):
-        if not self.__armed:
+        armed = await self.is_armed()
+        if not armed:
             self.logger.log_error("Can't make boat move, it isn't armed...")
             return
 
@@ -260,7 +264,7 @@ class AutoBoat:
         self.logger.log_warn(
             f"Boat is going to move at {speed} m/s for {duration} seconds")
         await self.vehicle.offboard.set_velocity_body(
-            VelocityBodyYawspeed(speed, 0, 0, target)
+            VelocityBodyYawspeed(speed, 0, 0, target))
 
         # degree_delta = abs(current - target)
         direction = 'left' if target > 0 else 'right'
@@ -286,6 +290,10 @@ class AutoBoat:
 
         self.logger.log_ok("Operation complete!", beg='\n')
 
+    async def get_flight_mode(self):
+        async for flight_mode in self.vehicle.telemetry.flight_mode():
+            return flight_mode
+
     async def __enable_offboard(self) -> bool:
         """Enables offboard mode for the boat. Returns a boolean indicating
         whether the operation was successful
@@ -293,7 +301,8 @@ class AutoBoat:
         Returns:
             bool: True if offboard was enabled, False otherwise
         """
-        if not self.__armed:
+        armed = await self.is_armed()
+        if not armed:
             self.logger.log_error(
                 "Tried to enable offboard when boat isn't armed. Canceling...")
             return False

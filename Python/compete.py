@@ -1,49 +1,61 @@
 import asyncio
-import cv2
+import time
 
 from samminhch.vision import BuoyDetector
 from samminhch.autopilot import AutoBoat
+from mavsdk.telemetry import FlightMode
 
 connection_string = 'serial:///dev/ttyACM0'
 
 async def main():
+    # Connect to the boat on startup
+    # Check the status of the boat
+    # # start the autonomous code if the status is set to OFFBOARD
+
     # Create the boat and arm it!
-    detector = BuoyDetector()
     boat = AutoBoat()
     await boat.connect(connection_string)
 
-    # ready the boat
+    mode = boat.get_flight_mode()
+    armed = boat.is_armed()
+
+    timeout = 10
+    start_time = time.time()
 
     try:
-        await boat.ready()
-        # find the buoys to go to
-        while True:
-            frame = detector.get_latest_frame()
-            detector.detect(frame)
-            detector.logger.log_debug(f'Delta is {detector.delta}')
+        while mode == FlightMode.OFFBOARD and armed:
+            if time.time() - start_time >= timeout:
+                break
+            await boat.vehicle.action.set_actuator(0, 0.125)
 
-            if abs(detector.delta) > 10:
-                amount_to_turn = 15 if detector.delta > 0 else -15
-                await boat.set_speed(10, 3)
-            else:
-                await boat.set_speed(10, 3)
     except Exception as e:
-        boat.logger.log_error(str(e))
+        print(str(e))
 
-    await boat.unready()
+    await boat.unready(rtl=False)
+
+    # try:
+    #     await boat.ready()
+    #     # find the buoys to go to
+    #     while True:
+    #         frame = detector.get_latest_frame()
+    #         detector.detect(frame)
+    #         detector.logger.log_debug(f'Delta is {detector.delta}')
+    #
+    #         if abs(detector.delta) > 10:
+    #             amount_to_turn = 15 if detector.delta > 0 else -15
+    #             await boat.forward(20, amount_to_turn, error_bound=5)
+    #         else:
+    #             # forward
+    #             await boat.forward(20, 0, error_bound=5)
+    # except Exception as e:
+    #     boat.logger.log_error(str(e))
+    #
+    # await boat.unready()
 
 # make the motors spin kinda slow for 5 seconds
 async def velocity_test():
     boat = AutoBoat()
     await boat.connect(connection_string)
-
-    try:
-        await boat.ready()
-        await boat.set_speed(0.25, 5)
-    except Exception as e:
-        boat.logger.log_error(str(e))
-
-    await boat.unready(rtl=False)
 
 
 async def detector_test():
@@ -57,7 +69,7 @@ async def detector_test():
         await asyncio.sleep(0.1)
 
 if __name__ == '__main__':
-    # asyncio.run(main())
-    asyncio.run(velocity_test())
+    asyncio.run(main())
+    # asyncio.run(velocity_test())
     # asyncio.run(detector_test())
     # asyncio.run(main_jerry())
