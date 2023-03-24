@@ -44,10 +44,8 @@ class AutoBoat:
         Returns:
             bool: True if boat was armed and in offboard mode, False if anything bad happens
         """
-        self.logger.log_warn("Arming the boat")
-        arm = await self.__arm()
-        self.logger.log_warn("Enabling offboard mode")
-        offboard = await self.__enable_offboard()
+        arm = await self.arm()
+        offboard = await self.enable_offboard()
 
         if not arm or not offboard:
             await self.unready()
@@ -123,13 +121,14 @@ class AutoBoat:
         async for heading in self.vehicle.telemetry.heading():
             return heading.heading_deg
 
-    async def __arm(self) -> bool:
+    async def arm(self) -> bool:
         """Attempts to arm the boat. Cancels arming if it takes longer than
         self.__timeout_seconds.
 
         Returns:
             bool: The return state. True if the boat was armed, False if the boat could not be armed.
         """
+        self.logger.log_warn("Arming the boat...")
         start_time = time.time()  # keep track of the time taken to arm
         async for health in self.vehicle.telemetry.health():
             if health.is_global_position_ok and health.is_home_position_ok:
@@ -241,51 +240,36 @@ class AutoBoat:
                 f'{dist_to_goal:05.2f} feet, {degree_delta:.2f}° from goal',
                 beg='\r', end='')
             current_position = await self.get_position()
+            degree_delta = abs(current - target)
             current = await self.get_heading()
             dist_to_goal = coords.coord_dist(new_coords, current_position)
             await asyncio.sleep(0.5)
 
         self.logger.log_ok("Operation complete!", beg='\n')
 
-    async def set_speed(self, speed: float, duration: float, heading: float = 0, error_bound: float = 5):
+    async def set_speed(self, speed: float, duration: float):
         armed = await self.is_armed()
         if not armed:
             self.logger.log_error("Can't make boat move, it isn't armed...")
             return
 
-        # current = await self.get_heading()
-        # self.logger.log_debug(f"Current heading is {current:.2f} degrees")
-        # target = current + heading
-        # target = ((target % 360) + 360) % 360
-        current = await self.get_heading()
-        target = heading
-        self.logger.log_debug(f"New heading is {target:.2f} degrees")
-
         self.logger.log_warn(
             f"Boat is going to move at {speed} m/s for {duration} seconds")
         await self.vehicle.offboard.set_velocity_body(
-            VelocityBodyYawspeed(speed, 0, 0, target))
-
-        # degree_delta = abs(current - target)
-        direction = 'left' if target > 0 else 'right'
+            VelocityBodyYawspeed(0, 0, speed, 0))
 
         current_speed = (await self.get_position_ned())[2]
 
-        self.logger.log_warn(
-            f"Going {speed:.2f} m/s @ {heading:.2f}° {direction}"
-        )
+        self.logger.log_warn(f"Going {speed:.2f} m/s")
 
         current_time = time.time()
         while True:
             if time.time() - current_time > duration:
                 break
 
-            self.logger.log_debug(
-                f'{current:.2f}° @ {current_speed:.2f} m/s',
+            self.logger.log_debug(f'Current speed: {current_speed:.2f} m/s',
                 beg='\r', end='')
-            current = await self.get_heading()
             current_speed = (await self.get_position_ned())[2]
-            # degree_delta = abs(current - target)
             await asyncio.sleep(0.5)
 
         self.logger.log_ok("Operation complete!", beg='\n')
@@ -294,7 +278,7 @@ class AutoBoat:
         async for flight_mode in self.vehicle.telemetry.flight_mode():
             return flight_mode
 
-    async def __enable_offboard(self) -> bool:
+    async def enable_offboard(self) -> bool:
         """Enables offboard mode for the boat. Returns a boolean indicating
         whether the operation was successful
 
@@ -307,12 +291,14 @@ class AutoBoat:
                 "Tried to enable offboard when boat isn't armed. Canceling...")
             return False
 
+        self.logger.log_warn("Enabling offboard mode...")
         try:
             await self.vehicle.offboard.set_position_ned(PositionNedYaw(0, 0, 0, 0))
             await self.vehicle.offboard.start()
+            self.logger.log_ok("Offboard mode enabled!")
             return True
         except Exception as e:
-            self.logger.log_error(e)
+            self.logger.log_error(str(e))
             return False
 
     async def return_home(self, error_bound: float = 5):

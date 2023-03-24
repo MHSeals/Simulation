@@ -9,6 +9,8 @@ class LibrealsenseBuoyDetector:
         pass
 
     def get_heading() -> float:
+        """This returns the heading (in degrees) on where the boat should turn.
+        If no buoys were detected, then it'll return 0 degrees to keep going straight"""
         #TODO
         pass
 

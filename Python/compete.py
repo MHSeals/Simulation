@@ -7,6 +7,7 @@ from mavsdk.telemetry import FlightMode
 
 connection_string = 'serial:///dev/ttyACM0'
 
+
 async def main():
     detector = LibrealsenseBuoyDetector()
     boat = AutoBoat()
@@ -24,11 +25,8 @@ async def main():
                 # THIS PART IS FOR BEN AND I TO INTEGRATE
                 # if can't find buoys in 30 seconds, break out while loop
                 heading = detector.get_heading()
+                await asyncio.wait_for(boat.forward(20, heading=heading, error_bound=5), timeout=30)
 
-                if heading > 10:
-                    await boat.forward(10, heading, error_bound=5)
-                else:
-                    await boat.forward(10, error_bound=5)
 
             # update ending conditions
             mode = boat.get_flight_mode()
@@ -36,7 +34,6 @@ async def main():
 
             await asyncio.sleep(0.5)
 
-            
     except Exception as e:
         boat.logger.log_error(str(e))
 
@@ -59,19 +56,26 @@ async def simulation_test():
 
             if abs(detector.delta) > 10:
                 start_time = time.time()
-                heading = 15 if detector.delta > 0 else -15
-                await boat.forward(10, heading, error_bound=5)
+                heading = 5 if detector.delta > 0 else -5
+                try:
+                    await asyncio.wait_for(boat.forward(20, heading, error_bound=5), timeout=30)
+                except TimeoutError:
+                    boat.logger.log_error("Timeout exceeded to move... Continuing program")
             else:
                 # if it hasn't seen a buoy in 30 seconds, then break out of loop
-                if start_time - time.time() > 30:
+                if start_time - time.time() > 20:
                     break
 
-                await boat.forward(10, error_bound=5)
+                try:
+                    await asyncio.wait_for(boat.forward(20, error_bound=5), timeout=30)
+                except TimeoutError:
+                    boat.logger.log_error("Timeout exceeded to move... Continuing program")
 
     except Exception as e:
         boat.logger.log_error(str(e))
 
     await boat.unready()
+
 
 async def simulation_actuator():
     detector = BuoyDetector()
@@ -99,8 +103,7 @@ async def simulation_actuator():
                 await boat.vehicle.action.set_actuator(1, 0.25)
                 await boat.vehicle.action.set_actuator(2, 0.25)
                 pass
-        
-        
+
     except Exception as e:
         boat.logger.log_error(str(e))
 
@@ -110,8 +113,9 @@ async def simulation_actuator():
 async def test_actuator():
     boat = AutoBoat()
     await boat.connect()
-    
+
     try:
+        await boat.ready()
         await boat.vehicle.action.set_actuator(1, 1)
         await asyncio.sleep(10)
 
