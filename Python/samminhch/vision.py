@@ -1,18 +1,36 @@
 import cv2
 import time
+import threading
+import subprocess
 
 from .pre_consolidation.gstream import Video
 from .simutils import ColorLogger
 
 class LibrealsenseBuoyDetector:
-    def __init__(self) -> None:
-        pass
+        def __init__(self) -> None:
+            self.curl_input = ''
+            self.curl_output = dict()
+            self.running = True
+            self.thread = threading.Thread(target=self.get_input)
 
-    def get_heading() -> float:
-        """This returns the heading (in degrees) on where the boat should turn.
-        If no buoys were detected, then it'll return 0 degrees to keep going straight"""
-        #TODO
-        pass
+        def get_heading(self):
+            return float(self.curl_output['heading'])
+        
+        def get_input(self):
+            url = 'https://localhost:8080'
+            curl_command = 'curl {}'.format(url)
+
+            output = ""
+            try:
+                output = subprocess.check_output(curl_command, shell=True).decode('UTF-8').strip().split("\n")
+            except subprocess.CalledProcessError:
+                print("Curl resulted in error.")
+                return
+
+            # assign output here
+            self.curl_output['heading'] = float(output[0])
+            self.curl_output['found_buoys'] = output[1] == 'found'
+
 
 class BuoyDetector:
     def __init__(self, im_width=640):

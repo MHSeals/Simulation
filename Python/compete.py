@@ -64,6 +64,7 @@ async def simulation_test():
             else:
                 # if it hasn't seen a buoy in 30 seconds, then break out of loop
                 if start_time - time.time() > 20:
+                    boat.logger.log_warn("it's been 20 seconds since last buoy... returning home!")
                     break
 
                 try:
