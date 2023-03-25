@@ -79,7 +79,7 @@ class BuoyDetector:
                                        cv2.RETR_EXTERNAL,
                                        cv2.CHAIN_APPROX_SIMPLE)
 
-        contours = [c for c in contours if cv2.contourArea(c) > 25]
+        contours = [c for c in contours if cv2.contourArea(c) > 10]
 
         if len(contours) == 0:
             self.logger.log_error(f'No {color} buoy found!')

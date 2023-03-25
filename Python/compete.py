@@ -54,22 +54,24 @@ async def simulation_test():
             frame = detector.get_latest_frame()
             detector.detect(frame)
 
+            boat.logger.log_debug(f"Delta: {detector.delta}")
             if abs(detector.delta) > 10:
+                heading = 15 if detector.delta > 0 else -15
                 start_time = time.time()
-                heading = 5 if detector.delta > 0 else -5
                 try:
-                    await asyncio.wait_for(boat.forward(20, heading, error_bound=5), timeout=30)
-                except TimeoutError:
+                    await asyncio.wait_for(boat.forward(30, heading, error_bound=5), timeout=30)
+                except Exception:
                     boat.logger.log_error("Timeout exceeded to move... Continuing program")
             else:
                 # if it hasn't seen a buoy in 30 seconds, then break out of loop
-                if start_time - time.time() > 20:
+                boat.logger.log_debug(f"Timeout so far: {time.time() - start_time}")
+                if time.time() - start_time > 60:
                     boat.logger.log_warn("it's been 20 seconds since last buoy... returning home!")
                     break
 
                 try:
-                    await asyncio.wait_for(boat.forward(20, error_bound=5), timeout=30)
-                except TimeoutError:
+                    await asyncio.wait_for(boat.forward(30, error_bound=5), timeout=30)
+                except Exception:
                     boat.logger.log_error("Timeout exceeded to move... Continuing program")
 
     except Exception as e:
@@ -126,7 +128,7 @@ async def test_actuator():
     await boat.unready()
 if __name__ == '__main__':
     # asyncio.run(main())
-    asyncio.run(test_actuator())
-    # asyncio.run(simulation_test())
+    # asyncio.run(test_actuator())
+    asyncio.run(simulation_test())
     # asyncio.run(simulation_actuator())
     # asyncio.run(main_actuator())

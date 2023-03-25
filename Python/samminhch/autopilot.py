@@ -243,6 +243,7 @@ class AutoBoat:
             degree_delta = abs(current - target)
             current = await self.get_heading()
             dist_to_goal = coords.coord_dist(new_coords, current_position)
+            direction = 'left' if target > 0 else 'right'
             await asyncio.sleep(0.5)
 
         self.logger.log_ok("Operation complete!", beg='\n')
