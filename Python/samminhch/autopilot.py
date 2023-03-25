@@ -151,46 +151,6 @@ class AutoBoat:
         async for armed_status in self.vehicle.telemetry.armed():
             return armed_status
 
-    async def turn(self, heading: float, error_bound: float = 1):
-        """Make the boat turn (hopefully in place) a certain heading.
-        A negative heading means to turn counter-clockwise, positive heading
-        means to turn clockwise
-
-        Args:
-            heading (float): The heading to turn, in degrees. Positive means to
-            turn right, and negative means to turn left
-        """
-        armed = await self.is_armed()
-        if not armed:
-            self.logger.log_error(
-                "Boat cannot turn when it isn't armed. Cancelling action...")
-            return
-
-        # calculate the target heading
-        current = await self.get_heading()
-        target = current + heading
-        target = ((target % 360) + 360) % 360
-        self.logger.log_debug(f"New heading is {target:.2f} degrees")
-
-        # Create the PositionGlobalYaw object
-        alt_type = PositionGlobalYaw.AltitudeType.REL_HOME
-        current_position = await self.get_position()
-        new_pos_global = PositionGlobalYaw(
-            current_position[0], current_position[1], 0, target, alt_type)
-
-        # Send the instruction to the boat
-        self.logger.log_warn(f"Making the boat turn {heading} degrees to"
-                             f" the {'left' if heading < 0 else 'right'}")
-        await self.vehicle.offboard.set_position_global(new_pos_global)
-
-        while abs(current - target) > error_bound:
-            current = await self.get_heading()
-            self.logger.log_debug(f'Current heading is {current:.2f} degrees ',
-                                  beg='\r', end='')
-            await asyncio.sleep(0.1)
-
-        self.logger.log_ok('Operation complete!', beg='\n')
-
     async def forward(self, distance: float, heading: float = 0, error_bound: float = 1):
         """Make the boat move a certain distance in feet in a certain heading.
         If heading is not specified, then boat moves straight.
@@ -248,33 +208,6 @@ class AutoBoat:
 
         self.logger.log_ok("Operation complete!", beg='\n')
 
-    async def set_speed(self, speed: float, duration: float):
-        armed = await self.is_armed()
-        if not armed:
-            self.logger.log_error("Can't make boat move, it isn't armed...")
-            return
-
-        self.logger.log_warn(
-            f"Boat is going to move at {speed} m/s for {duration} seconds")
-        await self.vehicle.offboard.set_velocity_body(
-            VelocityBodyYawspeed(0, 0, speed, 0))
-
-        current_speed = (await self.get_position_ned())[2]
-
-        self.logger.log_warn(f"Going {speed:.2f} m/s")
-
-        current_time = time.time()
-        while True:
-            if time.time() - current_time > duration:
-                break
-
-            self.logger.log_debug(f'Current speed: {current_speed:.2f} m/s',
-                beg='\r', end='')
-            current_speed = (await self.get_position_ned())[2]
-            await asyncio.sleep(0.5)
-
-        self.logger.log_ok("Operation complete!", beg='\n')
-
     async def get_flight_mode(self):
         async for flight_mode in self.vehicle.telemetry.flight_mode():
             return flight_mode
@@ -318,6 +251,47 @@ class AutoBoat:
                 current_position, self.__home_coordinates)
 
         self.logger.log_ok('Arrived home!', beg='\n')
+
+    async def goto(self, latitude: float, longitude: float, heading: float = 0, error_bound: float = 5):
+        # calculate the new heading
+        current_heading = await self.get_heading()
+        self.logger.log_debug(
+            f"Current heading is {current_heading:.2f} degrees")
+        target = current_heading + heading
+        target = ((target % 360) + 360) % 360
+        self.logger.log_debug(f"New heading is {target:.2f} degrees")
+
+        # create the new PositionGlobalYaw
+        alt_type = PositionGlobalYaw.AltitudeType.REL_HOME
+        new_pos_global = PositionGlobalYaw(
+            latitude, longitude, 0, target, alt_type)
+
+        current_position = await self.get_position()
+        dist_to_goal = coords.coord_dist(
+            current_position, (latitude, longitude))
+        direction = 'right' if heading > 0 else 'left'
+        degree_delta = abs(target - current_heading)
+
+        self.logger.log_warn(
+            f"Boat going to head to ({latitude:.4f}, {longitude:.4f})"
+            f", {dist_to_goal:.2f} feet away @ {heading:.2f}° {direction}"
+        )
+
+        await self.vehicle.offboard.set_position_global(new_pos_global)
+
+        while dist_to_goal > error_bound:
+            self.logger.log_debug(
+                f'{dist_to_goal:05.2f} feet, {degree_delta:.2f}° from goal',
+                beg='\r', end='')
+            current_position = await self.get_position()
+            degree_delta = abs(current_heading - target)
+            current_heading = await self.get_heading()
+            dist_to_goal = coords.coord_dist((latitude, longitude), current_position)
+            direction = 'left' if target > 0 else 'right'
+            await asyncio.sleep(0.5)
+
+        self.logger.log_ok("Operation complete!", beg='\n')
+        pass
 
 
 class AutoBoat_Jerry:

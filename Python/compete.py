@@ -1,5 +1,6 @@
 import asyncio
 import time
+import samminhch.coordinate_helper as coords
 
 from samminhch.vision import BuoyDetector, LibrealsenseBuoyDetector
 from samminhch.autopilot import AutoBoat
@@ -7,6 +8,34 @@ from mavsdk.telemetry import FlightMode
 
 connection_string = 'serial:///dev/ttyACM0'
 
+
+async def love_puerto_rico():
+    """Thank you for these coordinates :D"""
+    boat = AutoBoat()
+    await boat.connect(connection_string)
+
+    mode = boat.get_flight_mode()
+    armed = boat.is_armed()
+
+    current_coords = await boat.get_position()
+    current_heading = await boat.get_heading()
+    new_coords = coords.get_new_coordinate(current_coords, 50, current_heading)
+
+    try:
+        while True:
+            if not armed or not mode == FlightMode.OFFBOARD:
+                boat.logger.log_warn("Unarmed or not in offboard... waiting...!")
+                await asyncio.sleep(1)
+                continue
+            
+            await boat.goto(new_coords[0], new_coords[1])
+
+            await asyncio.sleep(1)
+    except Exception as e:
+        boat.logger.log_error(str(e))
+
+    await boat.unready()
+    pass
 
 async def main():
     detector = LibrealsenseBuoyDetector()
@@ -127,8 +156,9 @@ async def test_actuator():
 
     await boat.unready()
 if __name__ == '__main__':
+    asyncio.run(love_puerto_rico())
     # asyncio.run(main())
     # asyncio.run(test_actuator())
-    asyncio.run(simulation_test())
+    # asyncio.run(simulation_test())
     # asyncio.run(simulation_actuator())
     # asyncio.run(main_actuator())
