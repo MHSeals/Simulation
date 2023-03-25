@@ -12,24 +12,35 @@ connection_string = 'serial:///dev/ttyACM0'
 async def love_puerto_rico():
     """Thank you for these coordinates :D"""
     boat = AutoBoat()
-    await boat.connect(connection_string)
+    await boat.connect()
 
-    mode = boat.get_flight_mode()
-    armed = boat.is_armed()
 
     current_coords = await boat.get_position()
     current_heading = await boat.get_heading()
-    new_coords = coords.get_new_coordinate(current_coords, 50, current_heading)
+
+    waypoints = [
+            (27.3729721, -82.456359),    # 2
+            (27.3729148, -82.4528368),   # 3
+            (27.3729036, -82.4528549),   # 4
+    ]
+    idx = 0
 
     try:
+        await boat.ready()
+        mode = await boat.get_flight_mode()
+        armed = await boat.is_armed()
         while True:
-            if not armed or not mode == FlightMode.OFFBOARD:
+            if (not armed) or (mode != FlightMode.OFFBOARD):
                 boat.logger.log_warn("Unarmed or not in offboard... waiting...!")
-                await asyncio.sleep(1)
-                continue
-            
-            await boat.goto(new_coords[0], new_coords[1])
+            else:
+                if idx == len(waypoints):
+                    break
+                latitude, longitude = waypoints[idx]
+                await boat.goto(latitude, longitude)
+                idx += 1
 
+            mode = await boat.get_flight_mode()
+            armed = await boat.is_armed()
             await asyncio.sleep(1)
     except Exception as e:
         boat.logger.log_error(str(e))

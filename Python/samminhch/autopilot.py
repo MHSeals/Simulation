@@ -252,42 +252,33 @@ class AutoBoat:
 
         self.logger.log_ok('Arrived home!', beg='\n')
 
-    async def goto(self, latitude: float, longitude: float, heading: float = 0, error_bound: float = 5):
-        # calculate the new heading
-        current_heading = await self.get_heading()
-        self.logger.log_debug(
-            f"Current heading is {current_heading:.2f} degrees")
-        target = current_heading + heading
-        target = ((target % 360) + 360) % 360
-        self.logger.log_debug(f"New heading is {target:.2f} degrees")
-
+    async def goto(self, latitude: float, longitude: float, error_bound: float = 5):
         # create the new PositionGlobalYaw
         alt_type = PositionGlobalYaw.AltitudeType.REL_HOME
         new_pos_global = PositionGlobalYaw(
-            latitude, longitude, 0, target, alt_type)
+            latitude, longitude, 0, 0, alt_type)
 
         current_position = await self.get_position()
+        current_heading = await self.get_heading()
         dist_to_goal = coords.coord_dist(
             current_position, (latitude, longitude))
-        direction = 'right' if heading > 0 else 'left'
-        degree_delta = abs(target - current_heading)
 
         self.logger.log_warn(
             f"Boat going to head to ({latitude:.4f}, {longitude:.4f})"
-            f", {dist_to_goal:.2f} feet away @ {heading:.2f}° {direction}"
         )
 
         await self.vehicle.offboard.set_position_global(new_pos_global)
 
         while dist_to_goal > error_bound:
             self.logger.log_debug(
-                f'{dist_to_goal:05.2f} feet, {degree_delta:.2f}° from goal',
+                f'{dist_to_goal:05.2f} feet from goal @ {current_heading:.2f}°',
                 beg='\r', end='')
+
             current_position = await self.get_position()
-            degree_delta = abs(current_heading - target)
             current_heading = await self.get_heading()
-            dist_to_goal = coords.coord_dist((latitude, longitude), current_position)
-            direction = 'left' if target > 0 else 'right'
+            dist_to_goal = coords.coord_dist(
+                current_position, (latitude, longitude))
+
             await asyncio.sleep(0.5)
 
         self.logger.log_ok("Operation complete!", beg='\n')
