@@ -7,17 +7,13 @@ from samminhch.vision import BuoyDetector, LibrealsenseBuoyDetector
 from samminhch.autopilot import AutoBoat
 from mavsdk.telemetry import FlightMode
 
-connection_string = 'serial:///dev/ttyACM0'
+connection_string = 'serial:///dev/ttyACM0:57600'
 
 
 async def love_puerto_rico():
     """Thank you for these coordinates :D"""
     boat = AutoBoat()
-    await boat.connect()
-
-
-    current_coords = await boat.get_position()
-    current_heading = await boat.get_heading()
+    await boat.connect(connection_string)
 
     waypoints = [
             (27.3730439, -82.4526744),    # 1
