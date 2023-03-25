@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import asyncio
 import time
 import samminhch.coordinate_helper as coords
@@ -19,9 +20,12 @@ async def love_puerto_rico():
     current_heading = await boat.get_heading()
 
     waypoints = [
-            (27.3729721, -82.456359),    # 2
-            (27.3729148, -82.4528368),   # 3
-            (27.3729036, -82.4528549),   # 4
+            (27.3730439, -82.4526744),    # 1
+            (27.3729721, -82.456359),     # 2
+            (27.3729148, -82.4528368),    # 3
+            (27.3729036, -82.4528549),    # 4
+            (27.3730439, -82.4526744),    # 5
+            (27.3730439, -82.4526744),    # 6
     ]
     idx = 0
 
@@ -46,31 +50,34 @@ async def love_puerto_rico():
         boat.logger.log_error(str(e))
 
     await boat.unready()
-    pass
+
 
 async def main():
     detector = LibrealsenseBuoyDetector()
     boat = AutoBoat()
     await boat.connect(connection_string)
 
-    mode = boat.get_flight_mode()
-    armed = boat.is_armed()
+    mode = await boat.get_flight_mode()
+    armed = await boat.is_armed()
 
     try:
         while True:
             if mode != FlightMode.OFFBOARD and not armed:
-                await asyncio.sleep(0.5)
+                boat.logger.log_warn("Not armed or in offboard mode!!")
                 continue
             else:
                 # THIS PART IS FOR BEN AND I TO INTEGRATE
                 # if can't find buoys in 30 seconds, break out while loop
                 heading = detector.get_heading()
-                await asyncio.wait_for(boat.forward(20, heading=heading, error_bound=5), timeout=30)
+                try:
+                    await asyncio.wait_for(boat.forward(20, heading=heading, error_bound=5), timeout=30)
+                except Exception:
+                    boat.logger.log_error("Timeout exceeded to move... Continuing program")
 
 
             # update ending conditions
-            mode = boat.get_flight_mode()
-            armed = boat.is_armed()
+            mode = await boat.get_flight_mode()
+            armed = await boat.is_armed()
 
             await asyncio.sleep(0.5)
 
